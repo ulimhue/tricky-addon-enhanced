@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use tracing::warn;
 
 use crate::config::Config;
+use crate::platform::packages;
 
 const TS_MODULE_PROP: &str = "/data/adb/modules/tricky_store/module.prop";
 const TS_MODULE_PROP_HIDDEN: &str = "/data/adb/modules/.tricky_store/module.prop";
@@ -101,27 +102,12 @@ pub fn count_active_apps() -> u32 {
         return 0;
     }
 
-    let output = match Command::new("pm")
-        .args(["list", "packages"])
-        .output()
-    {
-        Ok(o) => o,
+    let installed = match packages::list_all() {
+        Ok(set) => set,
         Err(_) => return 0,
     };
 
-    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-    let installed: HashSet<&str> = stdout
-        .lines()
-        .filter_map(|l| l.strip_prefix("package:"))
-        .collect();
-
-    let mut count = 0u32;
-    for pkg in &target_pkgs {
-        if installed.contains(*pkg) {
-            count += 1;
-        }
-    }
-    count
+    target_pkgs.iter().filter(|pkg| installed.contains(**pkg)).count() as u32
 }
 
 pub fn get_keybox_label(cfg: &Config) -> &'static str {
@@ -236,27 +222,22 @@ fn push_live_description(desc: &str) {
 }
 
 pub fn scan_xposed() -> Result<Vec<String>> {
-    let output = Command::new("pm")
-        .args(["list", "packages", "-3"])
-        .output()
-        .context("failed to run pm list packages")?;
+    let all = packages::list_third_party()
+        .context("failed to read packages.list")?;
 
-    let packages = String::from_utf8_lossy(&output.stdout);
     let xposed_indicators = [
         "xposed", "lsposed", "edxposed", "riru",
         "shamiko", "zygisk",
     ];
 
-    let found: Vec<String> = packages
-        .lines()
-        .filter_map(|l| l.strip_prefix("package:"))
+    let mut found: Vec<String> = all
+        .into_iter()
         .filter(|pkg| {
             let lower = pkg.to_ascii_lowercase();
             xposed_indicators.iter().any(|ind| lower.contains(ind))
         })
-        .map(|s| s.to_string())
         .collect();
-
+    found.sort();
     Ok(found)
 }
 

@@ -4,6 +4,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::automation::target;
 use crate::automation::watcher;
+use crate::platform::packages;
 use super::ApplistAction;
 
 const TA_DIR: &str = "/data/adb/tricky_store/ta-enhanced";
@@ -104,21 +105,11 @@ fn resolve_app_name(package: &str) -> anyhow::Result<String> {
 }
 
 fn detect_xposed_modules() -> anyhow::Result<Vec<String>> {
-    let output = Command::new("pm")
-        .args(["list", "packages", "-3"])
-        .output()?;
-
-    if !output.status.success() {
-        anyhow::bail!("pm list packages failed");
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let modules: Vec<String> = stdout
-        .lines()
-        .filter_map(|l| l.strip_prefix("package:"))
-        .map(|s| s.trim().to_string())
+    let all = packages::list_third_party()?;
+    let mut modules: Vec<String> = all
+        .into_iter()
         .filter(|pkg| watcher::is_xposed_module(pkg))
         .collect();
-
+    modules.sort();
     Ok(modules)
 }
