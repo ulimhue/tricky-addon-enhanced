@@ -179,11 +179,13 @@ if [ -x "$RP" ]; then
         fi
     done
 
-    # --- Cleanup pass (replaces propclean.sh) ---
-    # Single getprop snapshot to avoid N forks across the cleanup ops below.
+    # --- Early cleanup pass: init-bound props only ---
+    # Fingerprint scrub targets ROM-version props that init populates from
+    # build.prop at its first pass. Late-binding artifacts (Xposed-injected
+    # GMS spoofs, system_ext/product/odm_dlkm overlays) get a second pass
+    # post-boot below.
     _all_props=$(getprop)
 
-    # ROM fingerprint scrub via --nuke. Preserve props belonging to the running ROM.
     _fingerprint_file="$MODPATH/common/rom-fingerprints.txt"
     if [ -f "$_fingerprint_file" ]; then
         while IFS= read -r _fp; do
@@ -199,38 +201,7 @@ if [ -x "$RP" ]; then
         done < "$_fingerprint_file"
     fi
 
-    # GMS-spoof / pixelprops / eliteprops / pihook artifacts
-    echo "$_all_props" | grep -E "pihook|pixelprops|eliteprops|spoof.gms" | \
-        sed -E 's/^\[(.*)\]:.*/\1/' | while IFS= read -r _prop_name; do
-            [ -n "$_prop_name" ] && "$RP" --nuke "$_prop_name" 2>/dev/null
-        done
-
-    # Build-string normalization (drops dev-keys, eng., userdebug, lineage_, aosp_)
-    replace_value_prop ro.build.flavor "lineage_" ""
-    replace_value_prop ro.build.flavor "userdebug" "user"
-    replace_value_prop ro.build.display.id "eng." ""
-    replace_value_prop ro.build.display.id "lineage_" ""
-    replace_value_prop ro.build.display.id "userdebug" "user"
-    replace_value_prop ro.build.display.id "dev-keys" "release-keys"
-    replace_value_prop vendor.camera.aux.packagelist "lineageos." ""
-    replace_value_prop ro.build.version.incremental "eng." ""
-
-    for _prefix in bootimage odm odm_dlkm oem product system system_ext vendor vendor_dlkm; do
-        check_reset_prop "ro.${_prefix}.build.type" "user"
-        check_reset_prop "ro.${_prefix}.build.tags" "release-keys"
-        replace_value_prop "ro.${_prefix}.build.version.incremental" "eng." ""
-        for _suffix in build.description build.fingerprint; do
-            replace_value_prop "ro.${_prefix}.${_suffix}" "aosp_" ""
-        done
-        replace_value_prop "ro.product.${_prefix}.name" "aosp_" ""
-    done
-
-    echo "$_all_props" | grep "test-keys" | cut -d'[' -f2 | cut -d']' -f1 | \
-        while IFS= read -r _prop_name; do
-            [ -n "$_prop_name" ] && replace_value_prop "$_prop_name" "test-keys" "release-keys"
-        done
-
-    _log "INFO" "Property spoofing complete: $_PROP_SPOOF_COUNT spoofed, $_PROP_FAIL_COUNT failed"
+    _log "INFO" "Property spoofing (early) complete: $_PROP_SPOOF_COUNT spoofed, $_PROP_FAIL_COUNT failed"
 else
     _log "ERROR" "resetprop-rs missing at $RP — skipping property spoofing"
 fi
@@ -305,6 +276,50 @@ timeout 120 getprop -w sys.boot_completed 2>/dev/null || {
     done
 }
 _log "INFO" "Boot completed"
+
+# Property Spoofing — Late Phase (post-zygote)
+# GMS-spoof artifacts come from Xposed at zygote; build-string overlays from
+# late-mounted partitions (system_ext, product, odm_dlkm) — both need a fresh
+# getprop snapshot taken after sys.boot_completed=1.
+if [ -x "$RP" ]; then
+    _log "INFO" "Property spoofing (late) starting"
+    _late_base_spoof=$_PROP_SPOOF_COUNT
+    _late_base_fail=$_PROP_FAIL_COUNT
+    _all_props=$(getprop)
+
+    echo "$_all_props" | grep -E "pihook|pixelprops|eliteprops|spoof.gms" | \
+        sed -E 's/^\[(.*)\]:.*/\1/' | while IFS= read -r _prop_name; do
+            [ -n "$_prop_name" ] && "$RP" --nuke "$_prop_name" 2>/dev/null
+        done
+
+    replace_value_prop ro.build.flavor "lineage_" ""
+    replace_value_prop ro.build.flavor "userdebug" "user"
+    replace_value_prop ro.build.display.id "eng." ""
+    replace_value_prop ro.build.display.id "lineage_" ""
+    replace_value_prop ro.build.display.id "userdebug" "user"
+    replace_value_prop ro.build.display.id "dev-keys" "release-keys"
+    replace_value_prop vendor.camera.aux.packagelist "lineageos." ""
+    replace_value_prop ro.build.version.incremental "eng." ""
+
+    for _prefix in bootimage odm odm_dlkm oem product system system_ext vendor vendor_dlkm; do
+        check_reset_prop "ro.${_prefix}.build.type" "user"
+        check_reset_prop "ro.${_prefix}.build.tags" "release-keys"
+        replace_value_prop "ro.${_prefix}.build.version.incremental" "eng." ""
+        for _suffix in build.description build.fingerprint; do
+            replace_value_prop "ro.${_prefix}.${_suffix}" "aosp_" ""
+        done
+        replace_value_prop "ro.product.${_prefix}.name" "aosp_" ""
+    done
+
+    echo "$_all_props" | grep "test-keys" | cut -d'[' -f2 | cut -d']' -f1 | \
+        while IFS= read -r _prop_name; do
+            [ -n "$_prop_name" ] && replace_value_prop "$_prop_name" "test-keys" "release-keys"
+        done
+
+    _late_spoof=$((_PROP_SPOOF_COUNT - _late_base_spoof))
+    _late_fail=$((_PROP_FAIL_COUNT - _late_base_fail))
+    _log "INFO" "Property spoofing (late) complete: $_late_spoof spoofed, $_late_fail failed"
+fi
 
 pm list packages -s 2>/dev/null | sed 's/^package://' | sort > "/data/adb/tricky_store/ta-enhanced/system_packages.txt"
 
