@@ -46,6 +46,7 @@ pub fn handle_daemon_status() -> anyhow::Result<()> {
     let status = serde_json::json!({
         "running": running,
         "pid": if running { pid } else { None },
+        "tasks": ["status", "automation", "health", "keybox", "security_patch"],
     });
     println!("{}", serde_json::to_string_pretty(&status)?);
     Ok(())
