@@ -53,6 +53,8 @@ if [ -n "$MODPATH" ]; then
     case "$(uname -m)" in
         aarch64)       ABI=arm64-v8a ;;
         armv7*|armv8l) ABI=armeabi-v7a ;;
+        x86_64)        ABI=x86_64 ;;
+        i?86)          ABI=x86 ;;
     esac
     BIN="$MODPATH/bin/${ABI}/ta-enhanced"
     if [ -x "$BIN" ]; then
