@@ -5,8 +5,6 @@ use crate::platform::network::wait_for_network;
 
 const TS_DIR: &str = "/data/adb/tricky_store";
 const DATA_DIR: &str = "/data/adb/tricky_store/ta-enhanced";
-const MODULE_DIR: &str = "/data/adb/modules/TA_enhanced";
-const MODULE_DIR_HIDDEN: &str = "/data/adb/modules/.TA_enhanced";
 
 pub struct TaskBackoff(pub u32);
 
@@ -275,38 +273,3 @@ impl DaemonTask for SecurityPatchTask {
     }
 }
 
-pub struct PropCleanTask;
-
-impl PropCleanTask {
-    pub fn new() -> Self { Self }
-
-    fn modpath() -> Option<&'static str> {
-        [MODULE_DIR_HIDDEN, MODULE_DIR]
-            .iter()
-            .find(|p| Path::new(p).join("propclean.sh").exists())
-            .copied()
-    }
-}
-
-impl DaemonTask for PropCleanTask {
-    fn name(&self) -> &'static str { "propclean" }
-    fn is_enabled(&self, config: &Config) -> bool { config.propclean.enabled }
-    fn interval_secs(&self, config: &Config) -> u32 { config.propclean.interval }
-
-    fn run(&mut self, _config: &Config, _manager: Option<&str>) -> Result<(), TaskBackoff> {
-        let modpath = match Self::modpath() {
-            Some(p) => p,
-            None => {
-                tracing::warn!("propclean.sh not found, skipping");
-                return Ok(());
-            }
-        };
-        let script = format!("{modpath}/propclean.sh");
-        match std::process::Command::new("sh").arg(&script).status() {
-            Ok(s) if s.success() => tracing::info!("propclean: completed"),
-            Ok(s) => tracing::warn!("propclean: exited with {s}"),
-            Err(e) => tracing::warn!("propclean: failed to execute: {e}"),
-        }
-        Ok(())
-    }
-}

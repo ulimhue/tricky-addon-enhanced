@@ -1,7 +1,7 @@
 use std::os::unix::io::RawFd;
 
 use crate::config::Config;
-use super::tasks::{DaemonTask, TaskBackoff, StatusTask, AutomationTask, HealthTask, KeyboxTask, SecurityPatchTask, PropCleanTask};
+use super::tasks::{DaemonTask, TaskBackoff, StatusTask, AutomationTask, HealthTask, KeyboxTask, SecurityPatchTask};
 
 const TAG_TASK_BASE: u64 = 100;
 
@@ -25,7 +25,6 @@ impl Scheduler {
             (Box::new(HealthTask::new()), 15),
             (Box::new(KeyboxTask::new()), 20),
             (Box::new(SecurityPatchTask::new()), 25),
-            (Box::new(PropCleanTask::new()), 30),
         ];
 
         let mut slots = Vec::with_capacity(task_defs.len());
