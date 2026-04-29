@@ -169,15 +169,21 @@ if [ -x "$RP" ]; then
         [ -n "$_r_hw_sku" ] && check_reset_prop "ro.boot.product.hardware.sku" "$_r_hw_sku"
     fi
 
-    # User-defined custom props from [props].custom_props in config.toml
-    "$BIN" config props-custom 2>/dev/null | while IFS="$(printf '\t')" read -r _cp_name _cp_value; do
+    # User-defined custom props from [props].custom_props in config.toml.
+    # Capture-then-iterate so counter increments survive (pipe-fed `while` runs in a subshell).
+    _custom_props=$("$BIN" config props-custom 2>/dev/null)
+    while IFS="$(printf '\t')" read -r _cp_name _cp_value; do
         [ -z "$_cp_name" ] && continue
         if "$RP" -st "$_cp_name" "$_cp_value" 2>/dev/null; then
+            _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
             _log "DEBUG" "custom_prop set: $_cp_name"
         else
+            _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
             _log "ERROR" "Failed to set custom_prop: $_cp_name"
         fi
-    done
+    done <<HEREDOC
+$_custom_props
+HEREDOC
 
     # --- Early cleanup pass: init-bound props only ---
     # Fingerprint scrub targets ROM-version props that init populates from
@@ -311,10 +317,12 @@ if [ -x "$RP" ]; then
         replace_value_prop "ro.product.${_prefix}.name" "aosp_" ""
     done
 
-    echo "$_all_props" | grep "test-keys" | cut -d'[' -f2 | cut -d']' -f1 | \
-        while IFS= read -r _prop_name; do
-            [ -n "$_prop_name" ] && replace_value_prop "$_prop_name" "test-keys" "release-keys"
-        done
+    _test_keys_props=$(echo "$_all_props" | grep "test-keys" | cut -d'[' -f2 | cut -d']' -f1)
+    while IFS= read -r _prop_name; do
+        [ -n "$_prop_name" ] && replace_value_prop "$_prop_name" "test-keys" "release-keys"
+    done <<HEREDOC
+$_test_keys_props
+HEREDOC
 
     _late_spoof=$((_PROP_SPOOF_COUNT - _late_base_spoof))
     _late_fail=$((_PROP_FAIL_COUNT - _late_base_fail))
