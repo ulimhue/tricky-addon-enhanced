@@ -230,10 +230,6 @@ if [ -x "$RP" ]; then
             [ -n "$_prop_name" ] && replace_value_prop "$_prop_name" "test-keys" "release-keys"
         done
 
-    check_reset_prop "init.svc.adbd" "stopped"
-    "$RP" --nuke init.svc.adb_root 2>/dev/null || true
-    check_reset_prop "init.svc.flash_recovery" "stopped"
-
     _log "INFO" "Property spoofing complete: $_PROP_SPOOF_COUNT spoofed, $_PROP_FAIL_COUNT failed"
 else
     _log "ERROR" "resetprop-rs missing at $RP — skipping property spoofing"
