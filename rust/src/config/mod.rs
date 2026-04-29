@@ -587,5 +587,13 @@ pub fn handle_config(
         ConfigAction::Dump { json } => cfg.dump(json),
         ConfigAction::Defaults => Config::defaults(),
         ConfigAction::Restore => Config::restore(None),
+        ConfigAction::PropsCustom => {
+            for pair in &cfg.props.custom_props {
+                if pair.len() == 2 && !pair[0].is_empty() {
+                    println!("{}\t{}", pair[0], pair[1]);
+                }
+            }
+            Ok(())
+        }
     }
 }

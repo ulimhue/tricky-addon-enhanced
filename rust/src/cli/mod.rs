@@ -87,6 +87,8 @@ pub enum ConfigAction {
     },
     Defaults,
     Restore,
+    #[command(name = "props-custom")]
+    PropsCustom,
 }
 
 #[derive(Subcommand)]
