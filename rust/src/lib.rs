@@ -10,6 +10,5 @@ pub mod health;
 pub mod conflict;
 pub mod status;
 pub mod vbhash;
-pub mod props;
 pub mod module;
 pub mod daemon;

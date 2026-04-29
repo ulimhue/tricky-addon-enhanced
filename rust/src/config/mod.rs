@@ -19,7 +19,6 @@ pub struct Config {
     pub vbhash: VbhashConfig,
     pub conflict: ConflictConfig,
     pub props: PropsConfig,
-    pub propclean: PropCleanConfig,
     pub region: RegionConfig,
     pub logging: LoggingConfig,
     pub ui: UiConfig,
@@ -37,7 +36,6 @@ impl Default for Config {
             vbhash: VbhashConfig::default(),
             conflict: ConflictConfig::default(),
             props: PropsConfig::default(),
-            propclean: PropCleanConfig::default(),
             region: RegionConfig::default(),
             logging: LoggingConfig::default(),
             ui: UiConfig::default(),
@@ -193,26 +191,12 @@ impl Default for ConflictConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PropsConfig {
-    pub enabled: bool,
     pub custom_props: Vec<[String; 2]>,
 }
 
 impl Default for PropsConfig {
     fn default() -> Self {
-        Self { enabled: true, custom_props: Vec::new() }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct PropCleanConfig {
-    pub enabled: bool,
-    pub interval: u32,
-}
-
-impl Default for PropCleanConfig {
-    fn default() -> Self {
-        Self { enabled: true, interval: 3600 }
+        Self { custom_props: Vec::new() }
     }
 }
 
@@ -302,8 +286,6 @@ const ALL_KEYS: &[&str] = &[
     "status.enabled", "status.interval", "status.emoji",
     "vbhash.enabled",
     "conflict.enabled", "conflict.auto_remove",
-    "props.enabled",
-    "propclean.enabled", "propclean.interval",
     "region.enabled", "region.hwc", "region.hwcountry", "region.mod_device", "region.hardware_sku",
     "logging.level", "logging.max_size_mb", "logging.max_files", "logging.log_dir",
     "ui.language",
@@ -388,9 +370,6 @@ impl Config {
             "vbhash.enabled" => Some(self.vbhash.enabled.to_string()),
             "conflict.enabled" => Some(self.conflict.enabled.to_string()),
             "conflict.auto_remove" => Some(self.conflict.auto_remove.to_string()),
-            "props.enabled" => Some(self.props.enabled.to_string()),
-            "propclean.enabled" => Some(self.propclean.enabled.to_string()),
-            "propclean.interval" => Some(self.propclean.interval.to_string()),
             "region.enabled" => Some(self.region.enabled.to_string()),
             "region.hwc" => Some(self.region.hwc.clone()),
             "region.hwcountry" => Some(self.region.hwcountry.clone()),
@@ -439,9 +418,6 @@ impl Config {
             "vbhash.enabled" => self.vbhash.enabled = parse_bool(value)?,
             "conflict.enabled" => self.conflict.enabled = parse_bool(value)?,
             "conflict.auto_remove" => self.conflict.auto_remove = parse_bool(value)?,
-            "props.enabled" => self.props.enabled = parse_bool(value)?,
-            "propclean.enabled" => self.propclean.enabled = parse_bool(value)?,
-            "propclean.interval" => self.propclean.interval = value.parse()?,
             "region.enabled" => self.region.enabled = parse_bool(value)?,
             "region.hwc" => self.region.hwc = value.to_string(),
             "region.hwcountry" => self.region.hwcountry = value.to_string(),
@@ -480,7 +456,6 @@ impl Config {
         clamp_min!(self.automation.interval, 5, "automation.interval");
         clamp_min!(self.health.interval, 5, "health.interval");
         clamp_min!(self.status.interval, 10, "status.interval");
-        clamp_min!(self.propclean.interval, 300, "propclean.interval");
 
         self.keybox.boot_retries = self.keybox.boot_retries.clamp(1, 30);
         self.keybox.retry_delay = self.keybox.retry_delay.clamp(1, 30);

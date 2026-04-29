@@ -17,7 +17,6 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     Version,
-    Props,
     Daemon {
         #[arg(long)]
         manager: Option<String>,

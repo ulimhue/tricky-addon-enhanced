@@ -24,11 +24,6 @@ pub fn dispatch(command: Commands, cfg: &Config) -> anyhow::Result<()> {
             println!("{}", read_version_from_prop());
             Ok(())
         }
-        Commands::Props => {
-            let sys = resetprop::PropSystem::open()
-                .map_err(|e| anyhow::anyhow!("property areas: {e}"))?;
-            crate::props::handle_props(cfg, &sys)
-        }
         Commands::Daemon { manager } => crate::daemon::handle_daemon(cfg, manager.as_deref()),
         Commands::DaemonStop => crate::daemon::handle_daemon_stop(),
         Commands::Config { action } => crate::config::handle_config(action, cfg),
