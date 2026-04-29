@@ -158,13 +158,3 @@ ensure_prop() {
     fi
 }
 
-hexpatch_deleteprop() {
-    [ -x "$RP" ] || { _log "WARN" "resetprop-rs not found at $RP, skipping hexpatch"; return 1; }
-    for search_string in "$@"; do
-        getprop | cut -d'[' -f2 | cut -d']' -f1 | grep "$search_string" | while read -r prop_name; do
-            if "$RP" --hexpatch-delete "$prop_name" 2>/dev/null; then
-                _log "DEBUG" "hexpatch: $prop_name"
-            fi
-        done
-    done
-}

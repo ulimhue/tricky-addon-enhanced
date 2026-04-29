@@ -1,5 +1,6 @@
-# ROM/kernel/framework fingerprint strings for hexpatch scrubbing
-# Any property whose name contains these substrings gets binary-patched
+# ROM/kernel/framework fingerprint strings for prop scrubbing
+# Any property whose name contains these substrings gets nuked via resetprop --nuke
+# (own-ROM props are preserved by the scrub loop in service.sh)
 # Source: sensitive-props-crontabs propscleaner.sh (silvzr/sensitive-props-crontabs)
 LSPosed
 custom.device
