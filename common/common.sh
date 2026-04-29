@@ -1,18 +1,22 @@
 # common.sh - Shared utilities for TA_enhanced module scripts
-# Sourced by: service.sh, action.sh, uninstall.sh, prop.sh
+# Sourced by: service.sh, action.sh, uninstall.sh
 
 # ABI Detection
 # KSU/APatch set $ARCH during install; at runtime fall back to uname
 if [ -n "$ARCH" ]; then
     case "$ARCH" in
-        arm64) ABI=arm64-v8a ;;
-        arm)   ABI=armeabi-v7a ;;
-        *)     ABI="" ;;
+        arm64)  ABI=arm64-v8a ;;
+        arm)    ABI=armeabi-v7a ;;
+        x64)    ABI=x86_64 ;;
+        x86)    ABI=x86 ;;
+        *)      ABI="" ;;
     esac
 else
     case "$(uname -m)" in
         aarch64)       ABI=arm64-v8a ;;
         armv7*|armv8l) ABI=armeabi-v7a ;;
+        x86_64)        ABI=x86_64 ;;
+        i?86)          ABI=x86 ;;
         *)             ABI="" ;;
     esac
 fi
@@ -31,6 +35,7 @@ TS_DIR="/data/adb/tricky_store"
 
 # Unified log directory -- shell and Rust daemon both log here
 LOG_BASE_DIR="/data/adb/tricky_store/ta-enhanced/logs"
+mkdir -p "$LOG_BASE_DIR" 2>/dev/null || true
 
 # Simple Logger
 # Writes to log file + logcat tag "TA_enhanced"
@@ -92,16 +97,17 @@ detect_language() {
     export TA_LANG
 }
 
-# Property spoofing primitives (shared by prop.sh and propclean.sh)
+# Property spoofing primitives (consumed by service.sh inline spoof block)
 # Callers set _PROP_SPOOF_COUNT and _PROP_FAIL_COUNT before use
 
 check_reset_prop() {
+    [ -x "$RP" ] || { _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1)); return 1; }
     local name="$1" expected="$2"
     local val
-    val=$(resetprop "$name")
+    val=$(getprop "$name")
     [ -z "$val" ] && return 0
     [ "$val" = "$expected" ] && return 0
-    if resetprop -n "$name" "$expected" 2>/dev/null; then
+    if "$RP" -st "$name" "$expected" 2>/dev/null; then
         _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
     else
         _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
@@ -110,10 +116,11 @@ check_reset_prop() {
 }
 
 contains_reset_prop() {
+    [ -x "$RP" ] || { _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1)); return 1; }
     local name="$1" contains="$2" newval="$3"
-    case "$(resetprop "$name")" in
+    case "$(getprop "$name")" in
         *"$contains"*)
-            if resetprop -n "$name" "$newval" 2>/dev/null; then
+            if "$RP" -st "$name" "$newval" 2>/dev/null; then
                 _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
             else
                 _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
@@ -124,17 +131,30 @@ contains_reset_prop() {
 }
 
 replace_value_prop() {
+    [ -x "$RP" ] || { _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1)); return 1; }
     local name="$1" search="$2" replace="$3"
     local val new_val
-    val=$(resetprop "$name")
+    val=$(getprop "$name")
     [ -z "$val" ] && return
     new_val=$(printf '%s' "$val" | sed "s|${search}|${replace}|g")
     [ "$val" = "$new_val" ] && return
-    if resetprop -n "$name" "$new_val" 2>/dev/null; then
+    if "$RP" -st "$name" "$new_val" 2>/dev/null; then
         _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
     else
         _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
         _log "ERROR" "Failed to replace in: $name"
+    fi
+}
+
+ensure_prop() {
+    [ -x "$RP" ] || { _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1)); return 1; }
+    local name="$1" value="$2"
+    [ -n "$(getprop "$name")" ] && return 0
+    if "$RP" -st "$name" "$value" 2>/dev/null; then
+        _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
+    else
+        _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
+        _log "ERROR" "Failed to ensure: $name"
     fi
 }
 

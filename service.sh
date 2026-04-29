@@ -39,9 +39,150 @@ add_denylist_to_target() {
 # Security patch is handled by the daemon's SecurityPatchTask (with retries + bulletin fetch).
 # Running `set` here would overwrite bulletin-fetched dates with stale device props.
 
-# Property Spoofing (background)
-_log "INFO" "Prop spoofing started"
-sh "$MODPATH/prop.sh" &
+# Stage resetprop-rs CLI before the inline spoof block — every prop write needs $RP
+# Atomic via temp+rename so concurrent execs cannot SIGBUS / hit ETXTBSY
+if [ -z "$ABI" ]; then
+    _log "ERROR" "Unknown ABI (ARCH=$ARCH uname=$(uname -m)) — prop spoofing will fail"
+elif [ ! -f "$MODPATH/bin/$ABI/resetprop-rs" ]; then
+    _log "ERROR" "resetprop-rs binary missing for ABI=$ABI at $MODPATH/bin/$ABI/"
+else
+    mkdir -p "/data/adb/tricky_store/ta-enhanced/bin"
+    _rp_dst="/data/adb/tricky_store/ta-enhanced/bin/resetprop-rs"
+    _rp_tmp="${_rp_dst}.new"
+    if cp -f "$MODPATH/bin/$ABI/resetprop-rs" "$_rp_tmp"; then
+        chmod 755 "$_rp_tmp" || _log "WARN" "chmod on $_rp_tmp failed"
+        mv -f "$_rp_tmp" "$_rp_dst" || _log "ERROR" "atomic rename to $_rp_dst failed"
+    else
+        rm -f "$_rp_tmp" 2>/dev/null
+        _log "ERROR" "cp resetprop-rs to $_rp_tmp failed"
+    fi
+fi
+
+# Property Spoofing (synchronous, inline — single source of truth)
+# Mirrors the susfs4ksu/service.sh:113 pattern: short wait gates init's
+# early prop pass without the post-zygote tax of waiting for value=1.
+if [ -x "$RP" ]; then
+    _log "INFO" "Property spoofing starting"
+    _PROP_SPOOF_COUNT=0
+    _PROP_FAIL_COUNT=0
+
+    "$RP" --wait sys.boot_completed 0 2>/dev/null || true
+
+    check_reset_prop "ro.boot.vbmeta.device_state" "locked"
+    check_reset_prop "ro.boot.verifiedbootstate" "green"
+    check_reset_prop "ro.boot.flash.locked" "1"
+    check_reset_prop "ro.boot.veritymode" "enforcing"
+    check_reset_prop "ro.boot.warranty_bit" "0"
+    check_reset_prop "ro.warranty_bit" "0"
+    check_reset_prop "ro.debuggable" "0"
+    check_reset_prop "ro.force.debuggable" "0"
+    check_reset_prop "ro.secure" "1"
+    check_reset_prop "ro.adb.secure" "1"
+    check_reset_prop "ro.build.type" "user"
+    check_reset_prop "ro.build.tags" "release-keys"
+    check_reset_prop "ro.vendor.boot.warranty_bit" "0"
+    check_reset_prop "ro.vendor.warranty_bit" "0"
+    check_reset_prop "vendor.boot.vbmeta.device_state" "locked"
+    check_reset_prop "vendor.boot.verifiedbootstate" "green"
+    check_reset_prop "sys.oem_unlock_allowed" "0"
+    check_reset_prop "ro.secureboot.lockstate" "locked"
+    check_reset_prop "ro.boot.realmebootstate" "green"
+    check_reset_prop "ro.boot.realme.lockstate" "1"
+    check_reset_prop "ro.crypto.state" "encrypted"
+    check_reset_prop "ro.is_ever_orange" "0"
+    check_reset_prop "ro.oem_unlock_supported" "0"
+    check_reset_prop "ro.secureboot.devicelock" "1"
+
+    contains_reset_prop "ro.bootmode" "recovery" "unknown"
+    contains_reset_prop "ro.boot.bootmode" "recovery" "unknown"
+    contains_reset_prop "ro.boot.mode" "recovery" "unknown"
+    contains_reset_prop "vendor.bootmode" "recovery" "unknown"
+    contains_reset_prop "vendor.boot.bootmode" "recovery" "unknown"
+    contains_reset_prop "vendor.boot.mode" "recovery" "unknown"
+
+    "$RP" --nuke ro.kernel.qemu 2>/dev/null || true
+
+    # VBMeta digest: prefer TEESimulator-RS boot_hash.bin, fall back to /data/adb/boot_hash
+    _hash_value=""
+    _hash_src=""
+    _ts_mp=$(cat "$TS/module.prop" 2>/dev/null)
+    case "$_ts_mp" in
+        *TEESimulator-RS*)
+            if [ -d "$TS" ] && [ ! -f "$TS/disable" ] && [ ! -f "$TS/remove" ] \
+                && [ -f "$TS_DIR/boot_hash.bin" ]; then
+                _hash_value=$(od -A n -t x1 "$TS_DIR/boot_hash.bin" 2>/dev/null | tr -d ' \n')
+                if echo "$_hash_value" | grep -qE '^[a-f0-9]{64}$'; then
+                    _hash_src="teesim"
+                else
+                    _hash_value=""
+                fi
+            fi
+            ;;
+    esac
+    if [ -z "$_hash_value" ] && [ -f "/data/adb/boot_hash" ]; then
+        _hash_value=$(grep -v '^#' "/data/adb/boot_hash" 2>/dev/null | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+        [ -n "$_hash_value" ] && _hash_src="boot_hash"
+    fi
+    if echo "$_hash_value" | grep -qE '^[a-f0-9]{64}$'; then
+        if "$RP" -st ro.boot.vbmeta.digest "$_hash_value" 2>/dev/null; then
+            _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
+            _log "INFO" "VBMeta digest set from $_hash_src: $(printf '%.16s' "$_hash_value")..."
+            _vb_read=$(getprop ro.boot.vbmeta.digest)
+            [ "$_vb_read" = "$_hash_value" ] || _log "WARN" "vbmeta.digest readback mismatch"
+        else
+            _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
+            _log "ERROR" "Failed to set vbmeta.digest from $_hash_src"
+        fi
+    elif [ -n "$_hash_value" ]; then
+        _log "WARN" "boot_hash invalid from $_hash_src (not 64-char hex)"
+    fi
+
+    ensure_prop "ro.boot.vbmeta.device_state" "locked"
+    ensure_prop "ro.boot.vbmeta.invalidate_on_error" "yes"
+    ensure_prop "ro.boot.vbmeta.avb_version" "1.0"
+    ensure_prop "ro.boot.vbmeta.hash_alg" "sha256"
+
+    _slot=$(getprop ro.boot.slot_suffix 2>/dev/null)
+    _vbmeta_size=""
+    for _candidate in \
+        "/dev/block/by-name/vbmeta${_slot}" \
+        "/dev/block/by-name/vbmeta" \
+        "/dev/block/by-name/vbmeta_a" \
+        "/dev/block/by-name/vbmeta_b"; do
+        if [ -b "$_candidate" ]; then
+            _vbmeta_size=$(blockdev --getsize64 "$_candidate" 2>/dev/null)
+            [ -n "$_vbmeta_size" ] && [ "$_vbmeta_size" -gt 0 ] 2>/dev/null && break
+            _vbmeta_size=""
+        fi
+    done
+    ensure_prop "ro.boot.vbmeta.size" "${_vbmeta_size:-4096}"
+
+    # Region restore — values snapshotted at install by customize.sh:179-190
+    if [ "$(read_config region.enabled true)" = "true" ]; then
+        _r_hwc=$(read_config region.hwc "")
+        _r_hwcountry=$(read_config region.hwcountry "")
+        _r_mod_device=$(read_config region.mod_device "")
+        _r_hw_sku=$(read_config region.hardware_sku "")
+        [ -n "$_r_hwc" ] && check_reset_prop "ro.boot.hwc" "$_r_hwc"
+        [ -n "$_r_hwcountry" ] && check_reset_prop "ro.boot.hwcountry" "$_r_hwcountry"
+        [ -n "$_r_mod_device" ] && check_reset_prop "ro.product.mod_device" "$_r_mod_device"
+        [ -n "$_r_hw_sku" ] && check_reset_prop "ro.boot.product.hardware.sku" "$_r_hw_sku"
+    fi
+
+    # User-defined custom props from [props].custom_props in config.toml
+    "$BIN" config props-custom 2>/dev/null | while IFS="$(printf '\t')" read -r _cp_name _cp_value; do
+        [ -z "$_cp_name" ] && continue
+        if "$RP" -st "$_cp_name" "$_cp_value" 2>/dev/null; then
+            _log "DEBUG" "custom_prop set: $_cp_name"
+        else
+            _log "ERROR" "Failed to set custom_prop: $_cp_name"
+        fi
+    done
+
+    _log "INFO" "Property spoofing complete: $_PROP_SPOOF_COUNT spoofed, $_PROP_FAIL_COUNT failed"
+else
+    _log "ERROR" "resetprop-rs missing at $RP — skipping property spoofing"
+fi
 
 # TSupport-A Interop
 if [ -d "$TSPA" ]; then
@@ -84,11 +225,6 @@ if [ ! -f "$TS_DIR/system_app" ]; then
         pm list packages -s 2>/dev/null | grep -q "package:$app" && echo "$app" >> "$TS_DIR/system_app"
     done
 fi
-
-mkdir -p "/data/adb/tricky_store/ta-enhanced/bin"
-
-cp -f "$MODPATH/bin/${ABI}/resetprop-rs" "/data/adb/tricky_store/ta-enhanced/bin/resetprop-rs" 2>/dev/null
-chmod 755 "/data/adb/tricky_store/ta-enhanced/bin/resetprop-rs" 2>/dev/null
 
 # Preserve module.prop for WebUI version display, then hide from manager UI
 cp -f "$MODPATH/module.prop" "/data/adb/tricky_store/ta-enhanced/module.prop" 2>/dev/null || true

@@ -70,8 +70,64 @@ fi
 
 if [ "$DO_BUILD" = true ]; then
     echo ""
-    echo "=== Cross-compiling Rust binary ==="
+    echo "=== Cross-compiling ta-enhanced ==="
     bash "$REPO_DIR/rust/build.sh" "$BUILD_PROFILE"
+
+    echo ""
+    echo "=== Cross-compiling resetprop-rs ==="
+    RP_SRC="${RESETPROP_RS_SRC:-/home/president/Git-repo-success/resetprop-rs}"
+    if [ ! -f "$RP_SRC/Cargo.toml" ]; then
+        echo "FATAL: resetprop-rs source not found at $RP_SRC" >&2
+        echo "Set RESETPROP_RS_SRC to override." >&2
+        exit 1
+    fi
+    NDK_HOME=$(
+        if [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "$ANDROID_NDK_HOME" ]; then
+            echo "$ANDROID_NDK_HOME"
+        elif [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/ndk" ]; then
+            ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1 | xargs -I{} echo "$ANDROID_HOME/ndk/{}"
+        else
+            ls -1 "$HOME/Android/Sdk/ndk" 2>/dev/null | sort -V | tail -1 | xargs -I{} echo "$HOME/Android/Sdk/ndk/{}"
+        fi
+    )
+    if [ -z "$NDK_HOME" ] || [ ! -d "$NDK_HOME" ]; then
+        echo "FATAL: Android NDK not found for resetprop-rs build" >&2
+        exit 1
+    fi
+    NDK_BIN="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+    declare -A ABI_TARGET=(
+        [arm64-v8a]=aarch64-linux-android
+        [armeabi-v7a]=armv7-linux-androideabi
+        [x86_64]=x86_64-linux-android
+        [x86]=i686-linux-android
+    )
+    declare -A TARGET_CC=(
+        [aarch64-linux-android]=aarch64-linux-android26-clang
+        [armv7-linux-androideabi]=armv7a-linux-androideabi26-clang
+        [x86_64-linux-android]=x86_64-linux-android26-clang
+        [i686-linux-android]=i686-linux-android26-clang
+    )
+    export PATH="$NDK_BIN:$PATH"
+    for abi in "${!ABI_TARGET[@]}"; do
+        target="${ABI_TARGET[$abi]}"
+        cc="$NDK_BIN/${TARGET_CC[$target]}"
+        target_upper=$(echo "$target" | tr '[:lower:]-' '[:upper:]_')
+        target_under=$(echo "$target" | tr - _)
+        declare -x "CARGO_TARGET_${target_upper}_LINKER=$cc"
+        declare -x "CC_${target_under}=$cc"
+        declare -x "AR_${target_under}=$NDK_BIN/llvm-ar"
+        echo "  -> $abi ($target)"
+        cargo build --release --manifest-path "$RP_SRC/Cargo.toml" \
+            --bin resetprop --target "$target" \
+            --target-dir "/tmp/resetprop-rs-build-$abi" >/dev/null
+        src="/tmp/resetprop-rs-build-$abi/$target/release/resetprop"
+        dst="$REPO_DIR/bin/$abi/resetprop-rs"
+        mkdir -p "$REPO_DIR/bin/$abi"
+        cp -f "$src" "$dst"
+        "$NDK_BIN/llvm-strip" "$dst" 2>/dev/null || true
+        chmod 755 "$dst"
+    done
+    echo "resetprop-rs built for all ABIs"
 fi
 
 if [ "$DO_WEBUI" = true ]; then
@@ -94,8 +150,6 @@ REQUIRED_FILES=(
     post-fs-data.sh
     service.sh
     uninstall.sh
-    prop.sh
-    propclean.sh
     install_func.sh
     module.prop
     update.json
@@ -113,6 +167,10 @@ done
 for abi in arm64-v8a armeabi-v7a x86_64 x86; do
     if [ ! -f "$REPO_DIR/bin/${abi}/ta-enhanced" ]; then
         echo "FATAL: bin/${abi}/ta-enhanced not found. Run without --no-build or build manually." >&2
+        exit 1
+    fi
+    if [ ! -f "$REPO_DIR/bin/${abi}/resetprop-rs" ]; then
+        echo "FATAL: bin/${abi}/resetprop-rs not found. Run without --no-build or build manually." >&2
         exit 1
     fi
 done
@@ -172,6 +230,8 @@ zip -r9 "$ZIP_PATH" . \
     -x ".gitignore" \
     -x ".gitmodules" \
     -x ".github/*" \
+    -x ".omc/*" \
+    -x ".context/*" \
     -x "external/*" \
     -x "artifacts/*" \
     -x "CLAUDE.md" \
