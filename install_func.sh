@@ -101,7 +101,11 @@ com.coloros.sceneservice"
 generate_minimal_target() {
     local system_apps="com.google.android.gms
 com.google.android.gsf
-com.android.vending"
+com.android.vending
+com.facebook.appmanager
+com.facebook.services
+com.facebook.system
+com.tencent.soter.soterserver"
 
     if [ "$(getprop ro.product.brand)" = "OnePlus" ]; then
         system_apps="$system_apps
@@ -179,7 +183,11 @@ generate_initial_target() {
 
     local system_apps="com.google.android.gms
 com.google.android.gsf
-com.android.vending"
+com.android.vending
+com.facebook.appmanager
+com.facebook.services
+com.facebook.system
+com.tencent.soter.soterserver"
 
     if [ "$(getprop ro.product.brand)" = "OnePlus" ]; then
         system_apps="$system_apps
