@@ -7,7 +7,7 @@ use crate::platform::network;
 const YURIKEY_URL: &str =
     "https://raw.githubusercontent.com/Yurii0307/yurikey/main/key";
 const UPSTREAM_URL: &str =
-    "https://raw.githubusercontent.com/KOWX712/Tricky-Addon-Update-Target-List/main/.extra";
+    "https://raw.githubusercontent.com/KOWX712/Tricky-Addon-Update-Target-List/keybox/.extra";
 const INTEGRITYBOX_URL: &str =
     "https://raw.githubusercontent.com/MeowDump/MeowDump/refs/heads/main/NullVoid/ShockWave.tar";
 const INTEGRITYBOX_MIRROR: &str =
