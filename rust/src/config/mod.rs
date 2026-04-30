@@ -468,7 +468,7 @@ impl Config {
         self.logging.max_files = self.logging.max_files.clamp(1, 10);
 
         match self.keybox.source.as_str() {
-            "yurikey" | "upstream" | "integritybox" | "custom" => {}
+            "yurikey" | "upstream" | "custom" => {}
             _ => self.keybox.source = "yurikey".into(),
         }
         match self.logging.level.as_str() {
