@@ -1,20 +1,43 @@
 # Changelog
 
-## v5.47.0 (2026-04-30)
+## v5.48.0 (2026-04-30)
+
+### Features
+- **Hot install** — module takes effect without reboot on KSU, APatch, and Magisk hot-paths. Conflicting modules are now purged via `rm -rf` at install time instead of flag-file disable, closing the boot-delay window where overlays kept mounting. Heuristic pass also removes any third-party module referencing known WebUI-companion conflict packages
+- **HMA bypass** — package enumeration and APK path resolution read `/data/system/packages.list` and scan `/data/app/` directly, so HideMyAppList no longer hides apps from the target picker or the daemon. Falls back to `dumpsys` for label resolution
+- **Default target.txt seeds** — `com.facebook.appmanager`, `com.facebook.services`, `com.facebook.system`, and `com.tencent.soter.soterserver` are now seeded unconditionally alongside GMS/GSF/Vending. Covers Samsung/OEM-preinstalled Facebook system apps and the WeChat biometric/payment auth bridge on Chinese ROMs
+- **`target.txt` autosave with delta writes** — every checkbox change auto-persists; rapid toggles coalesce into a single write per microtask. Hidden system entries are preserved verbatim. Save FAB is gone (#23)
+- **WebUI compatibility toggles** — Automation → Compatibility now exposes `disable_vbmeta_digest_spoof` and `disable_prop_handler` flags from a single dialog (#21)
+- **Inotify-driven status refresh** — module description now updates the moment a status-relevant event fires instead of waiting for the 30s poll
+- **Task list in `daemon-status`** — CLI now reports the active scheduler task list (Status, Automation, Health, Keybox, SecurityPatch)
+- **`config props-custom` CLI getter** — prints user-defined `props.custom_props` as `name<TAB>value` lines for shell consumption
 
 ### Bug Fixes
+- **Fingerprint enrollment failure** — boot-time `ro.boot.vbmeta.digest` rewrite is now gated behind `/data/adb/disable_vbmeta_digest_spoof`, fixing enrollment on Snapdragon-class devices without losing Play Integrity. The `/data/adb/disable_prop_handler` flag also short-circuits the digest rewrite (#21)
 - **Keybox source rotation** — KOW upstream URL repointed from the dead `main/.extra` to the live `keybox/.extra` branch (#22)
-- **Fingerprint enrollment failure** — boot-time `ro.boot.vbmeta.digest` rewrite now gated behind `/data/adb/disable_vbmeta_digest_spoof` flag, fixing enrollment failures on Snapdragon-class devices without losing Play Integrity. Toggle exposed in WebUI under Automation → Compatibility. Secondary `/data/adb/disable_prop_handler` flag now correctly short-circuits the digest rewrite as well (#21)
-- **Light-mode WebUI contrast** — text colors, hover surfaces, gradient-text fills, and glass-surface backgrounds (health banner, dialogs) now have light-mode equivalents (#20)
-- **`target.txt` data loss when toggling "Show System Apps"** — every checkbox change now auto-persists with delta writes that preserve hidden system entries verbatim. The Save FAB is gone; rapid toggles coalesce into a single write per microtask (#23)
+- **Variant-aware boot hash** — `prop.sh` previously trusted `boot_hash.bin` from any TrickyStore variant, including forks without boothash persistence. Now checks `module.prop` for TEESimulator-RS before deferring, validates the file, and falls back to `/data/adb/boot_hash` if invalid
+- **Spoof cleanup ordering** — split into early and late phases so prop normalization runs before the VBMeta block, fixing edge cases where ordering left stale build-string values
+- **`custom_props` and test-keys loops** — switched to heredoc-fed loops so values containing whitespace or shell metacharacters are applied verbatim
+- **x86 and x86_64 uninstall** — uninstall script now cleans the additional ABI binary directories shipped in v5.24.0
+- **Light-mode WebUI** — full light-mode pass: text colors, hover surfaces, gradient-text fills, glass-surface backgrounds, source-card body, icon tile, pale Unknown/AOSP icons, and the FETCH INTERVAL caption all have proper light-mode contrast. Mode picker rows get per-row color stripes so Auto, Generated, and Custom stay distinguishable on any accent or theme (#20)
 - **IntegrityBox config migration** — legacy `keybox.source = "integritybox"` values now persist their migration to `yurikey` on disk (previously rewritten in memory only)
-
-### Removed
-- **IntegrityBox keybox source** — upstream MeowDump replaced their artifact with an anti-fork taunt that decodes to "NICE TRY DIDDY". Existing configs with `keybox.source = "integritybox"` auto-migrate to `yurikey` on next boot
-- **Save FAB** — replaced by autosave; the floating button is no longer rendered
+- **Bundled JS null-deref on FAB removal** — minified bundle hard-references `#save` and `.floating-btn` at module init; an invisible inert stub is restored at the original location so the import resolves while autosave remains the sole save path
 
 ### Changed
-- **Denylist merge** gracefully no-ops on KSU/APatch (no upstream denylist enumeration API); Magisk path unchanged
+- **Boot-time spoofing consolidated into `service.sh`** — replaces the backgrounded `prop.sh` with a synchronous inline block gated on `--wait sys.boot_completed 0`, mirroring the susfs4ksu pattern. ZeroMount gating is no longer required for prop application
+- **Property cleanup runs once inline at boot** — folded `propclean.sh` into the consolidated spoof block. `--hexpatch-delete` replaced with `--nuke` everywhere; the hexpatch fallback is gone since propdetect heuristics flag hexpatch artifacts (count anomalies, name destruction)
+- **Standalone `resetprop-rs` CLI** — props now go through the standalone resetprop binary instead of the in-process Rust API
+- **`pm list` for package enumeration** — replaces direct `packages.list` parsing where appropriate
+- **`resetprop-rs` as cargo git dependency** — switched from a vendored submodule so builds pull the latest commit
+- **Denylist merge** — gracefully no-ops on KSU/APatch (no upstream denylist enumeration API); Magisk path unchanged
+
+### Removed
+- **Rust `props` module** — boot-time spoofing now lives entirely in `service.sh`. `Commands::Props` CLI variant, `props/mod.rs`, `PropsConfig.enabled`, and `PropCleanConfig` are gone. `platform/props.rs` trimmed to `RP_PATH` + `getprop` + `set`
+- **`PropCleanTask`** — daemon no longer schedules a recurring property-cleanup timer. Cleanup is a one-shot inline boot step. Scheduler now tracks five tasks instead of six
+- **`init.svc.*` spoofing** — dropped from the prop set; the entries created more attestation noise than they prevented
+- **`propclean.sh` and `prop.sh`** — both deleted; their logic is inlined in `service.sh`. `hexpatch_deleteprop` removed from `common.sh`
+- **IntegrityBox keybox source** — upstream MeowDump replaced their artifact with an anti-fork taunt that decodes to "NICE TRY DIDDY". Existing configs auto-migrate to `yurikey` on next boot
+- **Save FAB** — replaced by autosave; the floating button is no longer rendered
 
 ---
 
