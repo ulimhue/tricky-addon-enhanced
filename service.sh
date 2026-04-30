@@ -9,8 +9,14 @@ detect_manager
 
 _log "INFO" "Service started (manager=$MANAGER)"
 
-# Denylist merge function (Magisk only)
+# Denylist merge: Magisk reads from --denylist. KSU/APatch have no flat
+# enumeration API (per-package umount profiles only), so skip with a log.
 add_denylist_to_target() {
+    if [ "$MANAGER" != "MAGISK" ]; then
+        _log "INFO" "Denylist merge skipped: $MANAGER has no flat denylist API"
+        return 0
+    fi
+
     local target_file="$TS_DIR/target.txt"
     local tmp_file="${target_file}.tmp"
     local exclamation_target question_target existing denylist
