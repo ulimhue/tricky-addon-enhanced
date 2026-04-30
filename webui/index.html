@@ -505,6 +505,23 @@
                     </div>
                     <div class="accent-picker" id="accent-picker"></div>
                 </div>
+
+                <div class="setting-section">
+                    <div class="setting-header" data-i18n="automation_compat_header">Compatibility</div>
+                    <div class="setting-row">
+                        <span data-i18n="automation_disable_digest_spoof">Disable VBMeta digest spoof</span>
+                        <div class="custom-toggle" id="disable-digest-spoof-toggle" data-flag="disable_vbmeta_digest_spoof">
+                            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <span data-i18n="automation_disable_prop_handler">Disable boot-state spoof</span>
+                        <div class="custom-toggle" id="disable-prop-handler-toggle" data-flag="disable_prop_handler">
+                            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                        </div>
+                    </div>
+                    <div class="setting-hint" style="font-size:12px;opacity:0.7;margin-top:8px" data-i18n="automation_compat_hint">Reboot required after toggling. Use if fingerprint enrollment fails.</div>
+                </div>
             </div>
             <div slot="actions">
                 <md-text-button id="close-automation-settings" data-i18n="functional_button_close">Close</md-text-button>
@@ -519,5 +536,65 @@
             <span data-i18n="functional_button_uninstall_webui"></span>
         </md-filled-button>
     </div>
+
+    <script>
+    (() => {
+        const ksuExec = (cmd) => new Promise((resolve) => {
+            if (typeof ksu === 'undefined' || !ksu.exec) {
+                resolve({ errno: 1, stdout: '', stderr: 'ksu unavailable' });
+                return;
+            }
+            const cb = `__flagCb_${Date.now()}_${Math.floor(Math.random() * 1e9)}`;
+            window[cb] = (errno, stdout, stderr) => {
+                delete window[cb];
+                resolve({ errno: Number(errno), stdout: stdout || '', stderr: stderr || '' });
+            };
+            try { ksu.exec(cmd, '{}', cb); }
+            catch (e) { delete window[cb]; resolve({ errno: 1, stdout: '', stderr: String(e) }); }
+        });
+        const setOn = (toggle, on) => {
+            const track = toggle.querySelector('.toggle-track');
+            if (track) track.classList.toggle('active', !!on);
+        };
+        const isOn = (toggle) => {
+            const track = toggle.querySelector('.toggle-track');
+            return !!(track && track.classList.contains('active'));
+        };
+        const refreshState = async () => {
+            const toggles = document.querySelectorAll('.custom-toggle[data-flag]');
+            for (const t of toggles) {
+                const r = await ksuExec(`test -f /data/adb/${t.dataset.flag}`);
+                setOn(t, r.errno === 0);
+            }
+        };
+        const onToggleClick = async (e) => {
+            const toggle = e.currentTarget;
+            const flag = toggle.dataset.flag;
+            const currentlyOn = isOn(toggle);
+            const cmd = currentlyOn ? `rm -f /data/adb/${flag}` : `touch /data/adb/${flag}`;
+            const r = await ksuExec(cmd);
+            if (r.errno !== 0) {
+                if (typeof ksu !== 'undefined' && ksu.toast) ksu.toast('Failed to update flag');
+                return;
+            }
+            setOn(toggle, !currentlyOn);
+            if (window.confirm('Reboot now to apply the change?')) ksuExec('reboot');
+            else if (typeof ksu !== 'undefined' && ksu.toast) ksu.toast('Reboot to apply');
+        };
+        const init = () => {
+            document.querySelectorAll('.custom-toggle[data-flag]').forEach((t) => {
+                t.addEventListener('click', onToggleClick);
+            });
+            refreshState();
+            const dlg = document.getElementById('automation-settings-dialog');
+            if (dlg) {
+                new MutationObserver(() => { if (dlg.hasAttribute('open')) refreshState(); })
+                    .observe(dlg, { attributes: true, attributeFilter: ['open'] });
+            }
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
+    })();
+    </script>
 </body>
 </html>
