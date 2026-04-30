@@ -58,23 +58,43 @@ case "$ABI" in
 esac
 BIN="$MODPATH/bin/$ABI/ta-enhanced"
 
-for legacy_id in TA_utl .TA_utl; do
-    legacy_dir="/data/adb/modules/$legacy_id"
-    if [ -d "$legacy_dir" ] && [ ! -f "$legacy_dir/remove" ]; then
-        touch "$legacy_dir/disable" "$legacy_dir/remove"
-        ui_print "  🗑️  Legacy module $legacy_id tagged for removal"
+# Aggressive conflict purge. Hot-install means we cannot wait for the
+# manager to process disable+remove on next boot, so rm -rf conflicting
+# module directories from disk now. Active overlays linger until reboot
+# but our module hot-installs at higher precedence.
+PURGE_IDS="Yamabukiko TA_utl .TA_utl Yurikey xiaocaiye safetynet-fix \
+vbmeta-fixer playintegrity integrity_box SukiSU_module Reset_BootHash \
+Tricky_store-bm Hide_Bootloader ShamikoManager extreme_hide_root \
+Tricky_Store-xiaoyi tricky_store_assistant extreme_hide_bootloader \
+wjw_hiderootauxiliarymod PlayIntegrityFork"
+
+ui_print "  🔍 $(_msg conflict_check)"
+PURGED_COUNT=0
+for mod in $PURGE_IDS; do
+    [ -d "/data/adb/modules/$mod" ] || continue
+    rm -rf "/data/adb/modules/$mod"
+    ui_print "  🗑️  Purged: $mod"
+    PURGED_COUNT=$((PURGED_COUNT + 1))
+done
+
+# Heuristic: any module shipping a known conflicting WebUI package APK
+# under its system/ tree gets purged regardless of the module's own ID.
+for mod_dir in /data/adb/modules/*/; do
+    [ -d "$mod_dir" ] || continue
+    mod_id=$(basename "$mod_dir")
+    case "$mod_id" in
+        TA_enhanced|.TA_enhanced) continue ;;
+    esac
+    if find "$mod_dir" -maxdepth 6 \
+        \( -path "*com.lingqian.appbl*" -o -path "*com.topmiaohan.hidebllist*" \) \
+        2>/dev/null | head -n1 | grep -q .; then
+        rm -rf "$mod_dir"
+        ui_print "  🗑️  Purged WebUI conflict: $mod_id"
+        PURGED_COUNT=$((PURGED_COUNT + 1))
     fi
 done
 
-if [ -x "$BIN" ] && "$BIN" version >/dev/null 2>&1; then
-    ui_print "  🔍 $(_msg conflict_check)"
-    if ! "$BIN" conflict check --install 2>/dev/null; then
-        ui_print "  ❌ $(_msg conflict_found)"
-        ui_print "  ❌ $(_msg conflict_remove)"
-        abort "Conflict detection failed"
-    fi
-    ui_print "  ✅ $(_msg no_conflicts)"
-fi
+[ "$PURGED_COUNT" -eq 0 ] && ui_print "  ✅ $(_msg no_conflicts)"
 
 HAS_TARGET=0
 if [ -f "/data/adb/tricky_store/target.txt" ] && [ -s "/data/adb/tricky_store/target.txt" ]; then
