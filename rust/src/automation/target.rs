@@ -2,6 +2,7 @@ use std::path::Path;
 use crate::platform::fs::atomic_write;
 
 const TARGET_FILE: &str = "/data/adb/tricky_store/target.txt";
+pub(crate) const AUTO_ADDED: &str = "/data/adb/tricky_store/.automation/auto_added.txt";
 
 pub fn read_target() -> anyhow::Result<Vec<String>> {
     let path = Path::new(TARGET_FILE);
@@ -72,6 +73,46 @@ pub fn remove_package(pkg: &str) -> anyhow::Result<bool> {
         write_target(&filtered)?;
     }
     Ok(changed)
+}
+
+pub(crate) fn record_auto_added(pkg: &str) -> anyhow::Result<()> {
+    let path = Path::new(AUTO_ADDED);
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let bare = strip_suffix(pkg);
+    if existing.lines().any(|l| strip_suffix(l.trim()) == bare) {
+        return Ok(());
+    }
+    let mut content = existing;
+    if !content.is_empty() && !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push_str(pkg);
+    content.push('\n');
+    atomic_write(path, content.as_bytes())
+}
+
+pub(crate) fn forget_auto_added(pkg: &str) -> anyhow::Result<()> {
+    let path = Path::new(AUTO_ADDED);
+    if !path.exists() {
+        return Ok(());
+    }
+    let bare = strip_suffix(pkg);
+    let mut content = String::new();
+    for line in std::fs::read_to_string(path)?.lines() {
+        if strip_suffix(line.trim()) != bare {
+            content.push_str(line);
+            content.push('\n');
+        }
+    }
+    atomic_write(path, content.as_bytes())
+}
+
+pub(crate) fn write_auto_added(entries: &[String]) -> anyhow::Result<()> {
+    let mut content = entries.join("\n");
+    if !content.is_empty() {
+        content.push('\n');
+    }
+    atomic_write(Path::new(AUTO_ADDED), content.as_bytes())
 }
 
 fn is_excluded(pkg: &str, exclude_list: &[String]) -> bool {

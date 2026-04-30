@@ -8,12 +8,14 @@ use super::DaemonStatus;
 
 const AUTOMATION_DIR: &str = "/data/adb/tricky_store/.automation";
 const KNOWN_PACKAGES: &str = "/data/adb/tricky_store/.automation/known_packages.txt";
+const EXCLUDE_PATTERNS: &str = "/data/adb/tricky_store/.automation/exclude_patterns.txt";
 
 pub fn check_new_packages(exclude_list: &[String], manager: Option<&str>) -> anyhow::Result<u32> {
     ensure_dir(Path::new(AUTOMATION_DIR))?;
 
     let current = packages::list_third_party()?;
     let known = load_known_packages();
+    let effective_excludes = merge_excludes(exclude_list);
 
     let new_pkgs: Vec<String> = current
         .iter()
@@ -26,9 +28,25 @@ pub fn check_new_packages(exclude_list: &[String], manager: Option<&str>) -> any
         if is_xposed_module(pkg) {
             continue;
         }
-        if target::add_package(pkg, exclude_list)? {
+        if target::add_package(pkg, &effective_excludes)? {
+            let _ = target::record_auto_added(pkg);
             added += 1;
             tracing::info!("added {pkg} to target");
+        }
+    }
+
+    // One-shot retroactive attribution. When auto_added.txt is missing, the
+    // legacy in-memory `known` set still reflects what the previous (broken)
+    // daemon scan saw — the intersection with target.txt and system apps is
+    // the best available estimate of daemon-injected entries from v5.39/v5.40.
+    // Must run BEFORE save_known_packages overwrites the legacy snapshot.
+    if !Path::new(target::AUTO_ADDED).exists() {
+        match bootstrap_auto_added(&known) {
+            Ok(count) => tracing::info!("auto_added bootstrap: attributed {count} legacy entries"),
+            Err(e) => {
+                tracing::warn!("auto_added bootstrap failed, retrying next tick: {e}");
+                return Ok(added);
+            }
         }
     }
 
@@ -44,7 +62,9 @@ pub fn check_new_packages(exclude_list: &[String], manager: Option<&str>) -> any
 }
 
 pub fn cleanup_dead_apps() -> anyhow::Result<u32> {
-    let installed = packages::list_third_party()?;
+    // list_all (every package in packages.list) so we don't strip system apps
+    // that were intentionally seeded by install scripts.
+    let installed = packages::list_all()?;
     let target_list = target::read_target()?;
     let mut removed = 0u32;
 
@@ -53,6 +73,7 @@ pub fn cleanup_dead_apps() -> anyhow::Result<u32> {
             continue;
         }
         if target::remove_package(pkg)? {
+            let _ = target::forget_auto_added(pkg);
             removed += 1;
             tracing::info!("removed uninstalled {pkg} from target");
         }
@@ -92,6 +113,16 @@ pub fn is_xposed_module(package: &str) -> bool {
             return true;
         }
     }
+
+    if let Ok(output) = Command::new("unzip")
+        .args(["-p", &apk_path, "AndroidManifest.xml"])
+        .output()
+    {
+        let manifest: Vec<u8> = output.stdout.into_iter().filter(|b| *b != 0).collect();
+        if String::from_utf8_lossy(&manifest).contains("xposedmodule") {
+            return true;
+        }
+    }
     false
 }
 
@@ -116,6 +147,49 @@ pub fn show_status() -> DaemonStatus {
 
 fn app_data_exists(pkg: &str) -> bool {
     Path::new(&format!("/data/data/{pkg}")).exists()
+}
+
+fn bootstrap_auto_added(legacy_known: &HashSet<String>) -> anyhow::Result<usize> {
+    let target_set: HashSet<String> = target::read_target()?.into_iter().collect();
+    let system_apps = list_system_apps()?;
+
+    let entries: Vec<String> = legacy_known
+        .iter()
+        .filter(|p| target_set.contains(*p))
+        .filter(|p| system_apps.contains(*p))
+        .cloned()
+        .collect();
+
+    let count = entries.len();
+    target::write_auto_added(&entries)?;
+    Ok(count)
+}
+
+fn list_system_apps() -> anyhow::Result<HashSet<String>> {
+    let output = Command::new("pm")
+        .args(["list", "packages", "-s"])
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!("pm list packages -s exited {}", output.status);
+    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|l| l.strip_prefix("package:"))
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect())
+}
+
+fn merge_excludes(config_list: &[String]) -> Vec<String> {
+    let file_entries = std::fs::read_to_string(EXCLUDE_PATTERNS)
+        .unwrap_or_default()
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect::<Vec<_>>();
+    let mut merged: HashSet<String> = file_entries.into_iter().collect();
+    merged.extend(config_list.iter().cloned());
+    merged.into_iter().collect()
 }
 
 fn load_known_packages() -> HashSet<String> {
