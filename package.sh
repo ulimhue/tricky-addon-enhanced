@@ -149,8 +149,10 @@ REQUIRED_FILES=(
     customize.sh
     post-fs-data.sh
     service.sh
+    prop.sh
     uninstall.sh
     install_func.sh
+    hotinstall.sh
     module.prop
     update.json
     banner.png

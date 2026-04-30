@@ -47,11 +47,13 @@ choose_automation() {
     local seconds="${1:-10}"
     local ge_pid=""
 
+    [ "$seconds" -le 0 ] 2>/dev/null && seconds=30
+
     : > "$vol_tmp"
     getevent -qlc 1 > "$vol_tmp" 2>/dev/null &
     ge_pid=$!
 
-    while [ "$seconds" -gt 0 ] || [ "$1" = "0" ]; do
+    while [ "$seconds" -gt 0 ]; do
         sleep 1
         if ! kill -0 "$ge_pid" 2>/dev/null; then
             local key
@@ -70,7 +72,7 @@ choose_automation() {
             getevent -qlc 1 > "$vol_tmp" 2>/dev/null &
             ge_pid=$!
         fi
-        [ "$1" = "0" ] || seconds=$((seconds - 1))
+        seconds=$((seconds - 1))
     done
 
     kill "$ge_pid" 2>/dev/null
@@ -156,7 +158,7 @@ EOF
         apk_path=$(pm path "$pkg" 2>/dev/null | head -n1 | cut -d: -f2)
         [ -z "$apk_path" ] && continue
 
-        if unzip -l "$apk_path" 2>/dev/null | grep -q "assets/xposed_init"; then
+        if unzip -l "$apk_path" 2>/dev/null | grep -qE "assets/xposed_init|META-INF/xposed/module.prop"; then
             echo "$pkg" >> "$xposed_tmp"
         elif unzip -p "$apk_path" AndroidManifest.xml 2>/dev/null | tr -d '\0' | grep -q "xposedmodule"; then
             echo "$pkg" >> "$xposed_tmp"

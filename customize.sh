@@ -9,6 +9,9 @@ NEW_MODID=".TA_enhanced"
 AUTOMATION_DIR="$SCRIPT_DIR/.automation"
 ACTION=true
 
+export MODULE_HOT_INSTALL_REQUEST="true"
+export MODULE_HOT_RUN_SCRIPT="hotinstall.sh"
+
 . "$MODPATH/install_i18n.sh"
 
 ui_print " "
@@ -202,15 +205,25 @@ else
     ui_print "  ⚠️  $(_msg sec_patch_fail)"
 fi
 
-if [ ! -f "$SCRIPT_DIR/keybox.xml" ]; then
+if [ -f "$SCRIPT_DIR/keybox.xml" ]; then
+    ui_print "  🔑 $(_msg keybox_kept)"
+elif timeout 3 ping -c 1 -W 2 1.1.1.1 >/dev/null 2>&1; then
     ui_print "  🔑 $(_msg keybox_fetch)"
-    if "$BIN" keybox fetch 2>/dev/null; then
+    _keybox_ok=0
+    for _attempt in 1 2 3; do
+        if timeout 5 "$BIN" keybox fetch 2>/dev/null; then
+            _keybox_ok=1
+            break
+        fi
+        sleep 1
+    done
+    if [ "$_keybox_ok" = "1" ]; then
         ui_print "  ✅ $(_msg keybox_ok)"
     else
-        ui_print "  ⚠️  $(_msg keybox_fail)"
+        ui_print "  ⚠️  $(_msg keybox_fail) (will retry at boot)"
     fi
 else
-    ui_print "  🔑 $(_msg keybox_kept)"
+    ui_print "  🌐 No internet, keybox fetch deferred to boot/daemon"
 fi
 
 rm -f "$MODPATH/install_func.sh"
