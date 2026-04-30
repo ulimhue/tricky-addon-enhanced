@@ -113,6 +113,14 @@
         </div>
     </div>
 
+    <!-- Bundled JS hard-references #save and .floating-btn at module init.
+         Autosave is the only save path; the FAB stays in the DOM as a stub so
+         the bundle's references resolve, but is locked invisible and inert. -->
+    <md-fab id="save" class="floating-btn hide" label="Save"
+            style="display:none!important;pointer-events:none" aria-hidden="true">
+        <md-icon slot="icon">edit_note</md-icon>
+    </md-fab>
+
     <!-- Health Status Banner -->
     <div class="health-banner" id="health-banner">
         <div class="health-dot" id="health-dot"></div>
