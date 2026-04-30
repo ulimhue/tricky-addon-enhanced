@@ -4,11 +4,14 @@
 
 ### Bug Fixes
 - **Keybox source rotation** — KOW upstream URL repointed from the dead `main/.extra` to the live `keybox/.extra` branch (#22)
-- **Fingerprint enrollment failure** — boot-time `ro.boot.vbmeta.digest` rewrite now gated behind `/data/adb/disable_vbmeta_digest_spoof` flag, fixing enrollment failures on Snapdragon-class devices without losing Play Integrity. Toggle exposed in WebUI under Automation → Compatibility (#21)
-- **Light-mode WebUI contrast** — text colors, hover surfaces, and gradient-text fills now have light-mode equivalents (#20)
+- **Fingerprint enrollment failure** — boot-time `ro.boot.vbmeta.digest` rewrite now gated behind `/data/adb/disable_vbmeta_digest_spoof` flag, fixing enrollment failures on Snapdragon-class devices without losing Play Integrity. Toggle exposed in WebUI under Automation → Compatibility. Secondary `/data/adb/disable_prop_handler` flag now correctly short-circuits the digest rewrite as well (#21)
+- **Light-mode WebUI contrast** — text colors, hover surfaces, gradient-text fills, and glass-surface backgrounds (health banner, dialogs) now have light-mode equivalents (#20)
+- **`target.txt` data loss when toggling "Show System Apps"** — every checkbox change now auto-persists with delta writes that preserve hidden system entries verbatim. The Save FAB is gone; rapid toggles coalesce into a single write per microtask (#23)
+- **IntegrityBox config migration** — legacy `keybox.source = "integritybox"` values now persist their migration to `yurikey` on disk (previously rewritten in memory only)
 
 ### Removed
 - **IntegrityBox keybox source** — upstream MeowDump replaced their artifact with an anti-fork taunt that decodes to "NICE TRY DIDDY". Existing configs with `keybox.source = "integritybox"` auto-migrate to `yurikey` on next boot
+- **Save FAB** — replaced by autosave; the floating button is no longer rendered
 
 ### Changed
 - **Denylist merge** gracefully no-ops on KSU/APatch (no upstream denylist enumeration API); Magisk path unchanged
