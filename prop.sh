@@ -25,7 +25,7 @@ empty_reset_prop() {
 
 $RP -w sys.boot_completed 0
 
-if [ -f "/data/adb/boot_hash" ]; then
+if [ ! -f "/data/adb/disable_vbmeta_digest_spoof" ] && [ -f "/data/adb/boot_hash" ]; then
     hash_value=$(grep -v '^#' "/data/adb/boot_hash" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
     [ -z "$hash_value" ] && rm -f /data/adb/boot_hash || $RP -n ro.boot.vbmeta.digest "$hash_value"
 fi
