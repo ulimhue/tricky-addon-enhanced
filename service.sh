@@ -12,11 +12,6 @@ _log "INFO" "Service started (manager=$MANAGER)"
 # Denylist merge: Magisk reads from --denylist. KSU/APatch have no flat
 # enumeration API (per-package umount profiles only), so skip with a log.
 add_denylist_to_target() {
-    if [ "$MANAGER" != "MAGISK" ]; then
-        _log "INFO" "Denylist merge skipped: $MANAGER has no flat denylist API"
-        return 0
-    fi
-
     local target_file="$TS_DIR/target.txt"
     local tmp_file="${target_file}.tmp"
     local exclamation_target question_target existing denylist
@@ -45,10 +40,9 @@ add_denylist_to_target() {
 # Security patch is handled by the daemon's SecurityPatchTask (with retries + bulletin fetch).
 # Running `set` here would overwrite bulletin-fetched dates with stale device props.
 
-# DIAGNOSTIC v3: prop.sh keeps upstream Tricky-Addon-Update-Target-List calling
-# pattern byte-for-byte but is now pointed at our resetprop-rs binary via RP_BIN.
-# Isolates the binary from the calling pattern: if detection returns, the leak
-# is in resetprop-rs itself; if clean, it was in the prior service.sh block.
+# prop.sh runs with RP_BIN pointed at the bundled resetprop-rs to keep the
+# upstream calling pattern intact while sourcing the property setter from
+# the module bundle.
 RP_BIN="$MODPATH/bin/$ABI/resetprop-rs" sh "$MODPATH/prop.sh" &
 
 
@@ -62,8 +56,8 @@ fi
 # Magisk Module Hiding
 # Dot-prefix hides from Magisk's module list scan (stable since Magisk v24+).
 # service.sh re-copies on every boot so the hidden copy is always fresh.
-if [ -f "$MODPATH/action.sh" ]; then
-    if [ "$MODPATH" != "$HIDE_DIR" ]; then
+if [ "$MANAGER" = "MAGISK" ]; then
+    if [ -f "$MODPATH/action.sh" ] && [ "$MODPATH" != "$HIDE_DIR" ]; then
         _log "INFO" "Module hiding (Magisk)"
         rm -rf "$HIDE_DIR"
         mkdir -p "$HIDE_DIR"
@@ -77,11 +71,9 @@ if [ -f "$MODPATH/action.sh" ]; then
             BIN="$MODPATH/bin/${ABI}/ta-enhanced"
         fi
     fi
-
-    # Merge Magisk denylist into target.txt (flag-file-gated)
     [ -f "$TS_DIR/target_from_denylist" ] && add_denylist_to_target
 else
-    # KSU/APatch: clean up any stale hidden dir
+    _log "INFO" "Denylist merge skipped: $MANAGER has no flat denylist API"
     [ -d "$HIDE_DIR" ] && rm -rf "$HIDE_DIR"
 fi
 
