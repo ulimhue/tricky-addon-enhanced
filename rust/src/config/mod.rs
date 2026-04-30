@@ -469,13 +469,18 @@ impl Config {
 
         match self.keybox.source.as_str() {
             "yurikey" | "upstream" | "custom" => {}
-            _ => self.keybox.source = "yurikey".into(),
+            other => {
+                warnings.push(format!("keybox.source: legacy value '{}' migrated to 'yurikey'", other));
+                self.keybox.source = "yurikey".into();
+            }
         }
         match self.logging.level.as_str() {
             "error" | "warn" | "info" | "debug" | "trace" => {}
             _ => self.logging.level = "info".into(),
         }
         if !is_supported_lang(&self.ui.language) {
+            let prev = std::mem::take(&mut self.ui.language);
+            warnings.push(format!("ui.language: unsupported value '{}' reset to 'en'", prev));
             self.ui.language = "en".into();
         }
         if !self.logging.log_dir.starts_with("/data/adb/") {
