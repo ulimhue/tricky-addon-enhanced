@@ -133,11 +133,13 @@ A single native daemon manages all background tasks — if anything dies, it res
 
 1. Download the [latest release](https://github.com/Enginex0/tricky-addon-enhanced/releases/latest)
 2. Install via your root manager
-3. Reboot
+3. **No reboot required** on KSU and APatch (hot install). Magisk applies on the next boot.
 
 During install, press **Vol−** for manual target mode (GMS/GSF only) or **Vol+** / wait 10s for full automation.
 
-The module automatically captures VBHash, builds the exclude list, generates `target.txt`, fetches a valid keybox, sets security patch dates, and starts the daemon. Nothing else to do.
+Conflicting modules are detected and `rm -rf`'d at install time, so an old TA fork or competing keybox/VBHash module is removed automatically.
+
+The module captures VBHash, builds the exclude list, generates `target.txt`, fetches a valid keybox, sets security patch dates, and starts the daemon. Nothing else to do.
 
 ---
 
