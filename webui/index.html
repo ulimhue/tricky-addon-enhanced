@@ -113,11 +113,6 @@
         </div>
     </div>
 
-    <!-- Floating Button Element -->
-    <md-fab id="save" class="floating-btn hide" data-i18n="functional_button_save" label="Save">
-        <md-icon slot="icon">edit_note</md-icon>
-    </md-fab>
-
     <!-- Health Status Banner -->
     <div class="health-banner" id="health-banner">
         <div class="health-dot" id="health-dot"></div>
@@ -176,10 +171,6 @@
         <md-dialog id="help-dialog">
             <div slot="headline" data-i18n="help_help_instructions"></div>
             <div slot="content" class="help-content">
-                <div class="instruction">
-                    <p class="instruction-header" data-i18n="functional_button_save"></p>
-                    <p data-i18n="help_save_and_update_description"></p>
-                </div>
                 <div class="instruction">
                     <p class="instruction-header" data-i18n="help_select_denylist"></p>
                     <p data-i18n="help_select_denylist_description"></p>
@@ -565,13 +556,67 @@
             const cmd = currentlyOn ? `rm -f /data/adb/${flag}` : `touch /data/adb/${flag}`;
             const r = await ksuExec(cmd);
             if (r.errno !== 0) {
-                if (typeof ksu !== 'undefined' && ksu.toast) ksu.toast('Failed to update flag');
+                if (typeof window.y === 'function') window.y('prompt_flag_failed', true);
                 return;
             }
             setOn(toggle, !currentlyOn);
-            if (window.confirm('Reboot now to apply the change?')) ksuExec('reboot');
-            else if (typeof ksu !== 'undefined' && ksu.toast) ksu.toast('Reboot to apply');
+            if (typeof window.y === 'function') window.y('prompt_reboot_required', false, 5000);
         };
+        const TARGET_TXT = '/data/adb/tricky_store/target.txt';
+        let saveScheduled = false;
+        const flushTargetTxt = async () => {
+            saveScheduled = false;
+            const cards = Array.from(document.querySelectorAll('.card[data-package]'));
+            const visible = new Set();
+            const checkedVisible = new Map();
+            for (const c of cards) {
+                const pkg = c.dataset.package;
+                if (!/^[a-zA-Z0-9._]+$/.test(pkg)) continue;
+                visible.add(pkg);
+                const cb = c.querySelector('md-checkbox');
+                if (cb && cb.checked) {
+                    const mode = c.dataset.mode === 'generate' ? '!'
+                               : c.dataset.mode === 'hack'     ? '?' : '';
+                    checkedVisible.set(pkg, mode);
+                }
+            }
+            const cur = await ksuExec(`cat ${TARGET_TXT} 2>/dev/null`);
+            const preserved = (cur.stdout || '').split('\n')
+                .filter(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith('#')) return true;
+                    const pkg = trimmed.replace(/[!?]$/, '');
+                    return !visible.has(pkg);
+                });
+            const visibleLines = [];
+            for (const [pkg, mode] of checkedVisible) visibleLines.push(`${pkg}${mode}`);
+            const out = [...preserved, ...visibleLines]
+                .filter(Boolean)
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .join('\n');
+            const heredoc = `cat > ${TARGET_TXT} <<'TGT_EOF'\n${out}\nTGT_EOF`;
+            const r = await ksuExec(heredoc);
+            if (r.errno === 0) {
+                if (typeof window.y === 'function') window.y('prompt_saved_target');
+            } else if (typeof window.y === 'function') {
+                window.y('prompt_save_error', true);
+            }
+        };
+        const scheduleFlush = () => {
+            if (saveScheduled) return;
+            saveScheduled = true;
+            queueMicrotask(flushTargetTxt);
+        };
+        document.addEventListener('change', (ev) => {
+            if (ev.target && ev.target.matches && ev.target.matches('md-checkbox.checkbox')) {
+                scheduleFlush();
+            }
+        }, true);
+        ['select-all', 'deselect-all', 'select-denylist', 'deselect-unnecessary']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('click', () => setTimeout(scheduleFlush, 0));
+            });
         const init = () => {
             document.querySelectorAll('.custom-toggle[data-flag]').forEach((t) => {
                 t.addEventListener('click', onToggleClick);
