@@ -100,6 +100,18 @@ impl Scheduler {
         }
     }
 
+    pub fn run_status_now(&mut self, config: &Config) {
+        for slot in &mut self.slots {
+            if slot.task.name() != "status" { continue; }
+            if !slot.task.is_enabled(config) { return; }
+            if let Err(TaskBackoff(delay)) = slot.task.run(config, self.manager.as_deref()) {
+                tracing::info!("status: backoff {delay}s");
+                arm_timerfd_oneshot(slot.timer_fd, delay);
+            }
+            return;
+        }
+    }
+
     pub fn close_all(&self) {
         for slot in &self.slots {
             unsafe { libc::close(slot.timer_fd); }

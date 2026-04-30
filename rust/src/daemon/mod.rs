@@ -18,9 +18,12 @@ pub const CONFIG_PATH: &str = "/data/adb/tricky_store/ta-enhanced/config.toml";
 const TAG_SIGNAL: u64 = 0;
 const TAG_INOTIFY: u64 = 1;
 const TAG_APP_INOTIFY: u64 = 2;
+const TAG_STATUS_INOTIFY: u64 = 3;
 const TAG_TASK_BASE: u64 = 100;
 
 const APP_DIR: &str = "/data/app";
+const TS_DIR: &str = "/data/adb/tricky_store";
+const BOOT_HASH_PATH: &str = "/data/adb/boot_hash";
 
 pub fn handle_daemon(cfg: &Config, manager: Option<&str>) -> anyhow::Result<()> {
     let _ = cfg;
@@ -108,12 +111,25 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
         None
     };
 
+    let status_inotify_fd = match create_status_watcher() {
+        Ok(fd) => {
+            epoll_add(epoll_fd, fd, TAG_STATUS_INOTIFY)?;
+            tracing::info!("watching status sources (target.txt, security_patch.txt, boot_hash)");
+            Some(fd)
+        }
+        Err(e) => {
+            tracing::warn!("status inotify failed, relying on StatusTask polling: {e}");
+            None
+        }
+    };
+
     let mut sched = Scheduler::new(&config, epoll_fd, manager)?;
 
     let mut events = [libc::epoll_event { events: 0, u64: 0 }; 16];
     let mut inotify_debounce: Option<u64> = None;
     let mut app_debounce: Option<u64> = None;
     let mut app_retry: Option<u64> = None;
+    let mut status_debounce: Option<u64> = None;
 
     tracing::info!("daemon started (pid={})", std::process::id());
 
@@ -159,6 +175,10 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
                     app_debounce = Some(now + 3000);
                     app_retry = Some(now + 8000);
                 }
+                TAG_STATUS_INOTIFY => {
+                    drain_inotify_discard(status_inotify_fd.unwrap_or(-1));
+                    status_debounce = Some(now + 200);
+                }
                 t if t >= TAG_TASK_BASE => {
                     let task_idx = (t - TAG_TASK_BASE) as usize;
                     sched.handle_timer(task_idx, &config);
@@ -178,6 +198,7 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
                         tracing::info!("config reloaded");
                         sched.reconfigure(&config, &new_config);
                         config = new_config;
+                        status_debounce = Some(now + 200);
                     }
                     Err(e) => tracing::warn!("config reload failed: {e}"),
                 }
@@ -203,11 +224,19 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
                 }
             }
         }
+
+        if let Some(deadline) = status_debounce {
+            if now >= deadline {
+                status_debounce = None;
+                sched.run_status_now(&config);
+            }
+        }
     }
 
     tracing::info!("daemon shutting down");
     sched.close_all();
     unsafe {
+        if let Some(fd) = status_inotify_fd { libc::close(fd); }
         if let Some(fd) = app_inotify_fd { libc::close(fd); }
         libc::close(inotify_fd);
         libc::close(signal_fd);
@@ -265,6 +294,37 @@ fn rewatch_config(inotify_fd: RawFd, config_path: &str) -> anyhow::Result<()> {
         anyhow::bail!("rewatch failed: {}", std::io::Error::last_os_error());
     }
     Ok(())
+}
+
+fn create_status_watcher() -> anyhow::Result<RawFd> {
+    let fd = unsafe { libc::inotify_init1(libc::IN_NONBLOCK | libc::IN_CLOEXEC) };
+    if fd < 0 {
+        anyhow::bail!("inotify_init1 failed: {}", std::io::Error::last_os_error());
+    }
+
+    let ts_dir = std::ffi::CString::new(TS_DIR)?;
+    let ts_wd = unsafe {
+        libc::inotify_add_watch(
+            fd,
+            ts_dir.as_ptr(),
+            libc::IN_CLOSE_WRITE | libc::IN_MOVED_TO | libc::IN_CREATE | libc::IN_DELETE,
+        )
+    };
+    if ts_wd < 0 {
+        unsafe { libc::close(fd); }
+        anyhow::bail!("inotify_add_watch({TS_DIR}) failed: {}", std::io::Error::last_os_error());
+    }
+
+    let boot_hash = std::ffi::CString::new(BOOT_HASH_PATH)?;
+    let _ = unsafe {
+        libc::inotify_add_watch(
+            fd,
+            boot_hash.as_ptr(),
+            libc::IN_CLOSE_WRITE | libc::IN_DELETE_SELF | libc::IN_MOVE_SELF,
+        )
+    };
+
+    Ok(fd)
 }
 
 fn create_app_watcher(dir: &str) -> anyhow::Result<RawFd> {
