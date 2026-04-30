@@ -114,7 +114,6 @@ pub fn get_keybox_label(cfg: &Config) -> &'static str {
     match cfg.keybox.source.as_str() {
         "yurikey" => "Yurikey",
         "upstream" => "Upstream",
-        "integritybox" => "IntegrityBox",
         "custom" => "Custom",
         _ => "Unknown",
     }

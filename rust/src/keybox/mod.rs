@@ -22,7 +22,6 @@ const BACKUP_KEYBOX: &str = "/data/adb/tricky_store/keybox.xml.bak";
 pub enum KeyboxSource {
     Yurikey,
     Upstream,
-    IntegrityBox,
     Custom,
 }
 
@@ -35,7 +34,6 @@ impl fmt::Display for KeyboxSource {
         match self {
             Self::Yurikey => write!(f, "yurikey"),
             Self::Upstream => write!(f, "upstream"),
-            Self::IntegrityBox => write!(f, "integritybox"),
             Self::Custom => write!(f, "custom"),
         }
     }
@@ -47,7 +45,6 @@ impl FromStr for KeyboxSource {
         match s.to_ascii_lowercase().as_str() {
             "yurikey" => Ok(Self::Yurikey),
             "upstream" => Ok(Self::Upstream),
-            "integritybox" => Ok(Self::IntegrityBox),
             "custom" => Ok(Self::Custom),
             _ => bail!("unknown keybox source: {s}"),
         }
@@ -114,7 +111,6 @@ pub fn fetch(config: &Config) -> Result<FetchResult> {
         let result = match source {
             KeyboxSource::Yurikey => sources::fetch_yurikey(),
             KeyboxSource::Upstream => sources::fetch_upstream(),
-            KeyboxSource::IntegrityBox => sources::fetch_integritybox(),
             KeyboxSource::Custom => {
                 if custom_url.is_empty() {
                     continue;
@@ -186,7 +182,6 @@ pub fn get_sources(config: &Config) -> Vec<SourceInfo> {
     vec![
         SourceInfo { name: "yurikey".into(), active: active == KeyboxSource::Yurikey },
         SourceInfo { name: "upstream".into(), active: active == KeyboxSource::Upstream },
-        SourceInfo { name: "integritybox".into(), active: active == KeyboxSource::IntegrityBox },
         SourceInfo { name: "custom".into(), active: active == KeyboxSource::Custom },
     ]
 }
@@ -195,7 +190,6 @@ fn build_source_order(preferred: KeyboxSource) -> Vec<KeyboxSource> {
     let all = [
         KeyboxSource::Yurikey,
         KeyboxSource::Upstream,
-        KeyboxSource::IntegrityBox,
         KeyboxSource::Custom,
     ];
     let mut order = vec![preferred];
@@ -242,7 +236,6 @@ fn source_label(s: &KeyboxSource) -> &'static str {
     match s {
         KeyboxSource::Yurikey => "yurikey",
         KeyboxSource::Upstream => "upstream",
-        KeyboxSource::IntegrityBox => "integritybox",
         KeyboxSource::Custom => "custom",
     }
 }

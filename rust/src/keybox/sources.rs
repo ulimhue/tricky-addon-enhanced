@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use base64::Engine;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::platform::network;
 
@@ -8,12 +8,6 @@ const YURIKEY_URL: &str =
     "https://raw.githubusercontent.com/Yurii0307/yurikey/main/key";
 const UPSTREAM_URL: &str =
     "https://raw.githubusercontent.com/KOWX712/Tricky-Addon-Update-Target-List/keybox/.extra";
-const INTEGRITYBOX_URL: &str =
-    "https://raw.githubusercontent.com/MeowDump/MeowDump/refs/heads/main/NullVoid/ShockWave.tar";
-const INTEGRITYBOX_MIRROR: &str =
-    "https://raw.gitmirror.com/MeowDump/MeowDump/refs/heads/main/NullVoid/ShockWave.tar";
-
-const FILTER_WORDS: &[&str] = &["every", "soul", "will", "taste", "death"];
 
 pub fn fetch_yurikey() -> Result<Vec<u8>> {
     debug!("fetching keybox from yurikey");
@@ -37,45 +31,11 @@ pub fn fetch_upstream() -> Result<Vec<u8>> {
     Ok(decoded)
 }
 
-pub fn fetch_integritybox() -> Result<Vec<u8>> {
-    debug!("fetching keybox from integritybox");
-    let raw = network::download(INTEGRITYBOX_URL)
-        .or_else(|e| {
-            warn!("integritybox primary failed: {e}, trying mirror");
-            network::download(INTEGRITYBOX_MIRROR)
-        })
-        .context("integritybox download failed")?;
-
-    decode_integritybox(&raw)
-}
-
 pub fn fetch_custom_url(url: &str) -> Result<Vec<u8>> {
     debug!("fetching keybox from custom URL: {}", url);
     let data = network::download(url)
         .context("custom URL download failed")?;
     Ok(data)
-}
-
-fn decode_integritybox(raw: &[u8]) -> Result<Vec<u8>> {
-    let mut data = raw.to_vec();
-
-    for i in 0..10 {
-        let text = String::from_utf8(data)
-            .with_context(|| format!("integritybox round {}: not valid UTF-8", i + 1))?;
-        data = base64::engine::general_purpose::STANDARD
-            .decode(text.trim())
-            .with_context(|| format!("integritybox base64 round {} failed", i + 1))?;
-    }
-
-    let hex_text = String::from_utf8(data)
-        .context("integritybox hex stage: not valid UTF-8")?;
-    let hex_decoded = hex_decode(hex_text.trim())
-        .context("integritybox hex decode failed")?;
-
-    let rot13 = apply_rot13(&hex_decoded);
-    let filtered = word_filter(&rot13);
-
-    Ok(filtered.into_bytes())
 }
 
 fn hex_decode(s: &str) -> Result<String> {
@@ -88,24 +48,6 @@ fn hex_decode(s: &str) -> Result<String> {
         .map(|i| u8::from_str_radix(&clean[i..i + 2], 16))
         .collect();
     Ok(String::from_utf8(bytes?)?)
-}
-
-fn apply_rot13(s: &str) -> String {
-    s.chars()
-        .map(|c| match c {
-            'A'..='M' | 'a'..='m' => (c as u8 + 13) as char,
-            'N'..='Z' | 'n'..='z' => (c as u8 - 13) as char,
-            _ => c,
-        })
-        .collect()
-}
-
-fn word_filter(s: &str) -> String {
-    let mut result = s.to_string();
-    for word in FILTER_WORDS {
-        result = result.replace(word, "");
-    }
-    result
 }
 
 pub fn compute_sha256(data: &[u8]) -> String {
