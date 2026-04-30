@@ -64,7 +64,7 @@ pub fn persist(hash: &str, source: &str) -> Result<()> {
 }
 
 pub fn extract_from_property() -> Option<String> {
-    let val = crate::platform::props::getprop_once("ro.boot.vbmeta.digest")?;
+    let val = crate::platform::props::getprop("ro.boot.vbmeta.digest")?;
     let lower = val.to_ascii_lowercase();
     if verify_hash_format(&lower) {
         Some(lower)

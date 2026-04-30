@@ -13,12 +13,12 @@ pub fn getprop(name: &str) -> Option<String> {
 
 pub fn set(name: &str, value: &str) -> anyhow::Result<()> {
     let status = Command::new(RP_PATH)
-        .args(["-st", name, value])
+        .args(["-n", name, value])
         .status()?;
     if status.success() {
         Ok(())
     } else {
-        anyhow::bail!("resetprop-rs -st {name} failed")
+        anyhow::bail!("resetprop-rs -n {name} failed")
     }
 }
 

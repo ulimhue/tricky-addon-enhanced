@@ -131,7 +131,7 @@ pub fn get_patch_level() -> String {
             }
         }
     }
-    crate::platform::props::getprop_once("ro.build.version.security_patch")
+    crate::platform::props::getprop("ro.build.version.security_patch")
         .unwrap_or_else(|| "unknown".into())
 }
 
@@ -215,9 +215,19 @@ fn push_live_description(desc: &str) {
         .copied()
         .unwrap_or("ksud");
 
+    // ksud requires --internal <module-id>; the KSU_MODULE env var is ignored.
+    // Target tricky_store: that is the visible module the user sees once
+    // TA_enhanced's module.prop is removed in service.sh.
     let _ = Command::new(ksud)
-        .args(["module", "config", "set", "override.description", desc])
-        .env("KSU_MODULE", "TA_enhanced")
+        .args([
+            "module",
+            "config",
+            "--internal",
+            "tricky_store",
+            "set",
+            "override.description",
+            desc,
+        ])
         .output();
 }
 

@@ -9,7 +9,7 @@ use tracing::{info, warn};
 use crate::cli::SecurityPatchAction;
 use crate::config::Config;
 use crate::platform::fs::atomic_write;
-use crate::platform::props::{getprop_once as getprop, set_once as resetprop};
+use crate::platform::props::{getprop, set as prop_set};
 
 const TS_DIR: &str = "/data/adb/tricky_store";
 const SECURITY_PATCH_FILE: &str = "/data/adb/tricky_store/security_patch.txt";
@@ -280,15 +280,15 @@ fn write_standard(dates: &PatchDates) -> Result<()> {
 }
 
 fn write_legacy(dates: &PatchDates) -> Result<()> {
-    if let Err(e) = resetprop("ro.build.version.security_patch", &dates.system) {
-        warn!("resetprop system patch failed: {e}");
+    if let Err(e) = prop_set("ro.build.version.security_patch", &dates.system) {
+        warn!("resetprop-rs system patch failed: {e}");
     }
     if !dates.vendor.is_empty() {
-        if let Err(e) = resetprop("ro.vendor.build.security_patch", &dates.vendor) {
-            warn!("resetprop vendor patch failed: {e}");
+        if let Err(e) = prop_set("ro.vendor.build.security_patch", &dates.vendor) {
+            warn!("resetprop-rs vendor patch failed: {e}");
         }
     }
-    info!("applied security patch via resetprop");
+    info!("applied security patch via resetprop-rs");
     Ok(())
 }
 

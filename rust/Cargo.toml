@@ -1,6 +1,6 @@
 [package]
 name = "ta-enhanced"
-version = "5.27.0"
+version = "5.46.0"
 edition = "2021"
 
 [dependencies]
@@ -20,7 +20,6 @@ ring = "0.17"
 rcgen = { version = "0.12", default-features = false, features = ["pem", "ring"] }
 rsa = { version = "0.9", default-features = false, features = ["std", "pem"] }
 rand = "0.8"
-resetprop = { git = "https://github.com/Enginex0/resetprop-rs" }
 
 [profile.dev]
 strip = false

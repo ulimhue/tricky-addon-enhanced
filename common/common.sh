@@ -107,7 +107,7 @@ check_reset_prop() {
     val=$(getprop "$name")
     [ -z "$val" ] && return 0
     [ "$val" = "$expected" ] && return 0
-    if "$RP" -st "$name" "$expected" 2>/dev/null; then
+    if "$RP" "$name" "$expected" 2>/dev/null; then
         _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
     else
         _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
@@ -120,7 +120,7 @@ contains_reset_prop() {
     local name="$1" contains="$2" newval="$3"
     case "$(getprop "$name")" in
         *"$contains"*)
-            if "$RP" -st "$name" "$newval" 2>/dev/null; then
+            if "$RP" "$name" "$newval" 2>/dev/null; then
                 _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
             else
                 _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
@@ -138,7 +138,7 @@ replace_value_prop() {
     [ -z "$val" ] && return
     new_val=$(printf '%s' "$val" | sed "s|${search}|${replace}|g")
     [ "$val" = "$new_val" ] && return
-    if "$RP" -st "$name" "$new_val" 2>/dev/null; then
+    if "$RP" "$name" "$new_val" 2>/dev/null; then
         _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
     else
         _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))
@@ -150,7 +150,7 @@ ensure_prop() {
     [ -x "$RP" ] || { _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1)); return 1; }
     local name="$1" value="$2"
     [ -n "$(getprop "$name")" ] && return 0
-    if "$RP" -st "$name" "$value" 2>/dev/null; then
+    if "$RP" "$name" "$value" 2>/dev/null; then
         _PROP_SPOOF_COUNT=$((_PROP_SPOOF_COUNT + 1))
     else
         _PROP_FAIL_COUNT=$((_PROP_FAIL_COUNT + 1))

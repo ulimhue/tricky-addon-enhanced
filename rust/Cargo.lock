@@ -725,14 +725,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
-name = "resetprop"
-version = "0.3.1"
-source = "git+https://github.com/Enginex0/resetprop-rs#a840be470962301e79476be9fe3b26d99a9912e0"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "ring"
 version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -948,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "ta-enhanced"
-version = "5.27.0"
+version = "5.46.0"
 dependencies = [
  "anyhow",
  "base64",
@@ -958,7 +950,6 @@ dependencies = [
  "quick-xml",
  "rand",
  "rcgen",
- "resetprop",
  "ring",
  "rsa",
  "serde",
