@@ -57,7 +57,7 @@ One binary. One process. One config file. No shell scripts in the hot path.
 ## ✨ Features
 
 **Keybox Management**
-- [x] **4-source failover** — Yurikey → KOW → IntegrityBox → Custom, with automatic rotation
+- [x] **3-source failover** — Yurikey → KOW → Custom, with automatic rotation
 - [x] **XML validation** before applying — never installs a broken keybox
 - [x] **Automatic backup** — existing keybox backed up before every replacement
 - [x] **Custom keybox protection** — set source to `custom` and it stays untouched
@@ -184,7 +184,7 @@ Config lives at `/data/adb/tricky_store/config.toml` and is preserved across rei
 | Key | Default | Description |
 |---|---|---|
 | `keybox.enabled` | `true` | Auto keybox fetching |
-| `keybox.source` | `yurikey` | Primary source (`yurikey`, `upstream`, `integritybox`, `custom`) |
+| `keybox.source` | `yurikey` | Primary source (`yurikey`, `upstream`, `custom`) |
 | `keybox.interval` | `300` | Seconds between fetch attempts |
 | `security_patch.auto_update` | `true` | Auto patch date updates |
 | `security_patch.interval` | `86400` | Seconds between patch checks |
@@ -215,6 +215,22 @@ Config lives at `/data/adb/tricky_store/config.toml` and is preserved across rei
 
 /data/adb/boot_hash            # Persisted VBHash
 ```
+
+</details>
+
+---
+
+## 🛠️ Troubleshooting
+
+<details>
+<summary><b>Fingerprint enrollment fails after install</b></summary>
+
+On Snapdragon-class devices, the runtime VBMeta digest spoof can prevent enrollment of new fingerprints. Existing prints keep working; only adding new ones fails. Two escape hatches, available from the WebUI under **Automation → Compatibility**, or via terminal:
+
+- `touch /data/adb/disable_vbmeta_digest_spoof` — keeps Play Integrity spoofing, drops only the digest rewrite. Try this first.
+- `touch /data/adb/disable_prop_handler` — disables the entire boot-state spoof. Use only if the first doesn't help.
+
+Reboot after either change. Remove the file to restore the spoof.
 
 </details>
 
@@ -253,7 +269,6 @@ $ ta-enhanced --connect
 - **[5ec1cff](https://github.com/5ec1cff/TrickyStore)** — TrickyStore attestation module
 - **[XtrLumen/TS-Enhancer-Extreme](https://github.com/XtrLumen/TS-Enhancer-Extreme)** — VBHash extraction concept
 - **[Yurikey](https://github.com/Yurii0307/yurikey)** — primary keybox source
-- **[MeowDump/Integrity-Box](https://github.com/MeowDump/Integrity-Box)** — keybox source
 - **[Zero-Mount](https://github.com/Enginex0/zeromount)** — WebUI design inspiration
 - **[j-hc/zygisk-detach](https://github.com/nickcao/zygisk-detach)** — WebUI template
 

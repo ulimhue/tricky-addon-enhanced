@@ -1,5 +1,20 @@
 # Changelog
 
+## v5.47.0 (2026-04-30)
+
+### Bug Fixes
+- **Keybox source rotation** — KOW upstream URL repointed from the dead `main/.extra` to the live `keybox/.extra` branch (#22)
+- **Fingerprint enrollment failure** — boot-time `ro.boot.vbmeta.digest` rewrite now gated behind `/data/adb/disable_vbmeta_digest_spoof` flag, fixing enrollment failures on Snapdragon-class devices without losing Play Integrity. Toggle exposed in WebUI under Automation → Compatibility (#21)
+- **Light-mode WebUI contrast** — text colors, hover surfaces, and gradient-text fills now have light-mode equivalents (#20)
+
+### Removed
+- **IntegrityBox keybox source** — upstream MeowDump replaced their artifact with an anti-fork taunt that decodes to "NICE TRY DIDDY". Existing configs with `keybox.source = "integritybox"` auto-migrate to `yurikey` on next boot
+
+### Changed
+- **Denylist merge** gracefully no-ops on KSU/APatch (no upstream denylist enumeration API); Magisk path unchanged
+
+---
+
 ## v5.27.0 (2026-03-18)
 
 ### Bug Fixes
