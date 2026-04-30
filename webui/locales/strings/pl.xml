@@ -139,7 +139,6 @@
     <string name="automation_enable">Włącz</string>
     <string name="automation_src_primary">Źródło główne</string>
     <string name="automation_src_mirror">Lustro KOWX712</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">Wygenerowany przez urządzenie</string>
     <string name="automation_src_stock">Fabryczny keybox</string>
     <string name="automation_src_custom">Twój keybox</string>
@@ -155,6 +154,12 @@
     <string name="prompt_region_disabled">Wymuszanie props regionu wyłączone</string>
     <string name="automation_appearance_header">Wygląd</string>
     <string name="automation_randomize_accent">Losowy kolor akcentu przy ładowaniu</string>
+    <string name="automation_compat_header">Kompatybilność</string>
+    <string name="automation_disable_digest_spoof">Wyłącz fałszowanie skrótu VBMeta</string>
+    <string name="automation_disable_prop_handler">Wyłącz fałszowanie stanu rozruchu</string>
+    <string name="automation_compat_hint">Po przełączeniu wymagane jest ponowne uruchomienie. Użyj, jeśli rejestracja odcisku palca się nie powiedzie.</string>
+    <string name="prompt_flag_failed">Nie udało się zaktualizować flagi</string>
+    <string name="prompt_reboot_required">Uruchom ponownie, aby zastosować</string>
     <string name="prompt_keybox_fetch_enabled">Automatyczne pobieranie keybox włączone</string>
     <string name="prompt_keybox_fetch_disabled">Automatyczne pobieranie keybox wyłączone</string>
     <string name="prompt_patch_auto_enabled">Automatyczna aktualizacja łatki bezpieczeństwa włączona</string>

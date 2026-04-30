@@ -139,7 +139,6 @@
     <string name="automation_enable">啟用</string>
     <string name="automation_src_primary">主要來源</string>
     <string name="automation_src_mirror">KOWX712 鏡像</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">裝置產生</string>
     <string name="automation_src_stock">原廠金鑰</string>
     <string name="automation_src_custom">自訂金鑰</string>
@@ -155,6 +154,12 @@
     <string name="prompt_region_disabled">區域屬性強制已停用</string>
     <string name="automation_appearance_header">外觀</string>
     <string name="automation_randomize_accent">載入時隨機主題色</string>
+    <string name="automation_compat_header">相容性</string>
+    <string name="automation_disable_digest_spoof">停用 VBMeta 摘要偽裝</string>
+    <string name="automation_disable_prop_handler">停用啟動狀態偽裝</string>
+    <string name="automation_compat_hint">切換後需要重啟。若指紋註冊失敗，請啟用此項。</string>
+    <string name="prompt_flag_failed">標誌更新失敗</string>
+    <string name="prompt_reboot_required">重啟以套用</string>
     <string name="prompt_keybox_fetch_enabled">金鑰自動取得已啟用</string>
     <string name="prompt_keybox_fetch_disabled">金鑰自動取得已停用</string>
     <string name="prompt_patch_auto_enabled">安全修補程式自動更新已啟用</string>

@@ -138,7 +138,6 @@
     <string name="automation_enable">เปิดใช้งาน</string>
     <string name="automation_src_primary">แหล่งหลัก</string>
     <string name="automation_src_mirror">KOWX712 มิเรอร์</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">สร้างจากอุปกรณ์</string>
     <string name="automation_src_stock">Keybox ดั้งเดิม</string>
     <string name="automation_src_custom">Keybox ของคุณ</string>
@@ -154,6 +153,12 @@
     <string name="prompt_region_disabled">ปิดใช้งานการบังคับ region prop แล้ว</string>
     <string name="automation_appearance_header">ลักษณะที่ปรากฏ</string>
     <string name="automation_randomize_accent">สีเน้นแบบสุ่มเมื่อโหลด</string>
+    <string name="automation_compat_header">ความเข้ากันได้</string>
+    <string name="automation_disable_digest_spoof">ปิดใช้งานการปลอม VBMeta digest</string>
+    <string name="automation_disable_prop_handler">ปิดใช้งานการปลอมสถานะการบูต</string>
+    <string name="automation_compat_hint">ต้องรีบูตหลังการเปลี่ยนแปลง ใช้หากการลงทะเบียนลายนิ้วมือล้มเหลว</string>
+    <string name="prompt_flag_failed">อัปเดตแฟล็กไม่สำเร็จ</string>
+    <string name="prompt_reboot_required">รีบูตเพื่อนำไปใช้</string>
     <string name="mode_leaf_hack">Leaf Hack (?)</string>
     <string name="prompt_keybox_fetch_enabled">เปิดใช้งานดึง Keybox อัตโนมัติ</string>
     <string name="prompt_keybox_fetch_disabled">ปิดใช้งานดึง Keybox อัตโนมัติ</string>

@@ -135,7 +135,6 @@
     <string name="automation_enable">সক্রিয় করুন</string>
     <string name="automation_src_primary">প্রাথমিক উৎস</string>
     <string name="automation_src_mirror">KOWX712 মিরর</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">ডিভাইস তৈরি</string>
     <string name="automation_src_stock">স্টক keybox</string>
     <string name="automation_src_custom">আপনার keybox</string>
@@ -151,6 +150,12 @@
     <string name="prompt_region_disabled">রিজিয়ন prop প্রয়োগ নিষ্ক্রিয় করা হয়েছে</string>
     <string name="automation_appearance_header">চেহারা</string>
     <string name="automation_randomize_accent">লোডে এলোমেলো অ্যাকসেন্ট রঙ</string>
+    <string name="automation_compat_header">সামঞ্জস্যতা</string>
+    <string name="automation_disable_digest_spoof">VBMeta digest spoof নিষ্ক্রিয় করুন</string>
+    <string name="automation_disable_prop_handler">Boot state spoof নিষ্ক্রিয় করুন</string>
+    <string name="automation_compat_hint">টগল করার পর রিবুট প্রয়োজন। ফিঙ্গারপ্রিন্ট নিবন্ধন ব্যর্থ হলে ব্যবহার করুন।</string>
+    <string name="prompt_flag_failed">ফ্ল্যাগ আপডেট করতে ব্যর্থ</string>
+    <string name="prompt_reboot_required">প্রয়োগ করতে রিবুট করুন</string>
     <!-- Mode dialog -->
     <string name="mode_dialog_title">মোড</string>
     <string name="mode_auto">স্বয়ংক্রিয়</string>

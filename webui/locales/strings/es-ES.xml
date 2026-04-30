@@ -139,7 +139,6 @@
     <string name="automation_enable">Activar</string>
     <string name="automation_src_primary">Fuente principal</string>
     <string name="automation_src_mirror">Espejo KOWX712</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">Generado por el dispositivo</string>
     <string name="automation_src_stock">Keybox de fábrica</string>
     <string name="automation_src_custom">Tu keybox</string>
@@ -155,6 +154,12 @@
     <string name="prompt_region_disabled">Aplicación de props de región desactivada</string>
     <string name="automation_appearance_header">Apariencia</string>
     <string name="automation_randomize_accent">Color de acento aleatorio al cargar</string>
+    <string name="automation_compat_header">Compatibilidad</string>
+    <string name="automation_disable_digest_spoof">Desactivar suplantación del digest VBMeta</string>
+    <string name="automation_disable_prop_handler">Desactivar suplantación del estado de arranque</string>
+    <string name="automation_compat_hint">Es necesario reiniciar después de cambiar. Úsalo si falla el registro de huella dactilar.</string>
+    <string name="prompt_flag_failed">Error al actualizar la opción</string>
+    <string name="prompt_reboot_required">Reinicia para aplicar</string>
     <string name="prompt_keybox_fetch_enabled">Obtención automática de keybox activada</string>
     <string name="prompt_keybox_fetch_disabled">Obtención automática de keybox desactivada</string>
     <string name="prompt_patch_auto_enabled">Actualización automática del parche de seguridad activada</string>

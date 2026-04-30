@@ -138,7 +138,6 @@
     <string name="automation_enable">Ativar</string>
     <string name="automation_src_primary">Fonte principal</string>
     <string name="automation_src_mirror">Espelho KOWX712</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">Gerado pelo dispositivo</string>
     <string name="automation_src_stock">Keybox original</string>
     <string name="automation_src_custom">Seu keybox</string>
@@ -154,6 +153,12 @@
     <string name="prompt_region_disabled">Aplicação de props de região desativada</string>
     <string name="automation_appearance_header">Aparência</string>
     <string name="automation_randomize_accent">Cor de destaque aleatória ao carregar</string>
+    <string name="automation_compat_header">Compatibilidade</string>
+    <string name="automation_disable_digest_spoof">Desativar spoof do digest VBMeta</string>
+    <string name="automation_disable_prop_handler">Desativar spoof do estado de boot</string>
+    <string name="automation_compat_hint">Reinicialização necessária após alternar. Use se o cadastro de digital falhar.</string>
+    <string name="prompt_flag_failed">Falha ao atualizar flag</string>
+    <string name="prompt_reboot_required">Reinicie para aplicar</string>
     <string name="prompt_keybox_fetch_enabled">Busca automática de keybox ativada</string>
     <string name="prompt_keybox_fetch_disabled">Busca automática de keybox desativada</string>
     <string name="prompt_patch_auto_enabled">Atualização automática do patch de segurança ativada</string>

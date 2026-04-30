@@ -135,7 +135,6 @@
     <string name="automation_enable">Attiva</string>
     <string name="automation_src_primary">Fonte principale</string>
     <string name="automation_src_mirror">Mirror KOWX712</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">Generato dal dispositivo</string>
     <string name="automation_src_stock">Keybox di fabbrica</string>
     <string name="automation_src_custom">Il tuo keybox</string>
@@ -151,6 +150,12 @@
     <string name="prompt_region_disabled">Applicazione props regionali disattivata</string>
     <string name="automation_appearance_header">Aspetto</string>
     <string name="automation_randomize_accent">Colore d'accento casuale al caricamento</string>
+    <string name="automation_compat_header">Compatibilità</string>
+    <string name="automation_disable_digest_spoof">Disabilita spoofing del digest VBMeta</string>
+    <string name="automation_disable_prop_handler">Disabilita spoofing dello stato di avvio</string>
+    <string name="automation_compat_hint">Riavvio richiesto dopo la modifica. Usalo se la registrazione dell&apos;impronta digitale non riesce.</string>
+    <string name="prompt_flag_failed">Aggiornamento flag fallito</string>
+    <string name="prompt_reboot_required">Riavvia per applicare</string>
     <!-- Mode dialog -->
     <string name="mode_dialog_title">Modalità</string>
     <string name="mode_auto">Auto</string>

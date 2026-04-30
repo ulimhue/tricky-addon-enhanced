@@ -134,7 +134,6 @@
     <string name="automation_enable">Ενεργοποίηση</string>
     <string name="automation_src_primary">Κύρια πηγή</string>
     <string name="automation_src_mirror">Καθρέφτης KOWX712</string>
-    <string name="automation_src_meowdump">MeowDump</string>
     <string name="automation_src_device">Δημιουργία από συσκευή</string>
     <string name="automation_src_stock">Εργοστασιακό keybox</string>
     <string name="automation_src_custom">Το keybox σας</string>
@@ -150,6 +149,12 @@
     <string name="prompt_region_disabled">Η επιβολή region prop απενεργοποιήθηκε</string>
     <string name="automation_appearance_header">Εμφάνιση</string>
     <string name="automation_randomize_accent">Τυχαίο χρώμα τονισμού κατά τη φόρτωση</string>
+    <string name="automation_compat_header">Συμβατότητα</string>
+    <string name="automation_disable_digest_spoof">Απενεργοποίηση spoof του VBMeta digest</string>
+    <string name="automation_disable_prop_handler">Απενεργοποίηση spoof κατάστασης εκκίνησης</string>
+    <string name="automation_compat_hint">Απαιτείται επανεκκίνηση μετά την εναλλαγή. Χρησιμοποίησέ το αν αποτύχει η εγγραφή δακτυλικού αποτυπώματος.</string>
+    <string name="prompt_flag_failed">Αποτυχία ενημέρωσης σημαίας</string>
+    <string name="prompt_reboot_required">Επανεκκίνηση για εφαρμογή</string>
     <!-- Mode dialog -->
     <string name="mode_dialog_title">Λειτουργία</string>
     <string name="mode_auto">Αυτόματο</string>
