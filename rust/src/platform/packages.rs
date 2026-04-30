@@ -3,31 +3,31 @@ use std::path::Path;
 
 const PACKAGES_LIST: &str = "/data/system/packages.list";
 const DATA_APP: &str = "/data/app";
-const FIRST_APP_UID: u32 = 10000;
 
 pub fn list_third_party() -> anyhow::Result<HashSet<String>> {
-    let content = std::fs::read_to_string(PACKAGES_LIST)?;
-    Ok(parse_packages_list(&content, true))
+    let output = std::process::Command::new("pm")
+        .args(["list", "packages", "-3"])
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!("pm list packages -3 exited {}", output.status);
+    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|l| l.strip_prefix("package:"))
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect())
 }
 
 pub fn list_all() -> anyhow::Result<HashSet<String>> {
     let content = std::fs::read_to_string(PACKAGES_LIST)?;
-    Ok(parse_packages_list(&content, false))
+    Ok(parse_packages_list(&content))
 }
 
-fn parse_packages_list(content: &str, third_party_only: bool) -> HashSet<String> {
+fn parse_packages_list(content: &str) -> HashSet<String> {
     content
         .lines()
-        .filter_map(|line| {
-            let mut fields = line.split_whitespace();
-            let pkg = fields.next()?;
-            if third_party_only {
-                let uid: u32 = fields.next()?.parse().ok()?;
-                (uid >= FIRST_APP_UID).then(|| pkg.to_string())
-            } else {
-                Some(pkg.to_string())
-            }
-        })
+        .filter_map(|line| line.split_whitespace().next().map(str::to_string))
         .collect()
 }
 
