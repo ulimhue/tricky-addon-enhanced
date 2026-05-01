@@ -17,16 +17,13 @@ use crate::platform::fs::atomic_write;
 const TARGET_KEYBOX: &str = "/data/adb/tricky_store/keybox.xml";
 const BACKUP_KEYBOX: &str = "/data/adb/tricky_store/keybox.xml.bak";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum KeyboxSource {
+    #[default]
     Yurikey,
     Upstream,
     Custom,
-}
-
-impl Default for KeyboxSource {
-    fn default() -> Self { Self::Yurikey }
 }
 
 impl fmt::Display for KeyboxSource {
@@ -70,10 +67,17 @@ pub fn handle_keybox(action: KeyboxAction, cfg: &Config) -> Result<()> {
             Ok(())
         }
         KeyboxAction::Validate { path } => {
+            use std::io::Write;
             let target = path.as_deref().unwrap_or(TARGET_KEYBOX);
-            validate::validate_file(Path::new(target))?;
-            println!("keybox valid: {target}");
-            Ok(())
+            let report = validate::validate_file_full(Path::new(target))?;
+            let mut stdout = std::io::stdout().lock();
+            writeln!(stdout, "{}", serde_json::to_string_pretty(&report)?)?;
+            stdout.flush()?;
+            if report.ok {
+                Ok(())
+            } else {
+                bail!("keybox validation failed: {target}")
+            }
         }
         KeyboxAction::SetCustom { path } => {
             set_custom(Path::new(&path))?;
@@ -123,17 +127,36 @@ pub fn fetch(config: &Config) -> Result<FetchResult> {
 
         match result {
             Ok(data) => {
-                if let Err(e) = validate::validate(&data) {
-                    warn!("keybox from {} failed validation: {e}", source);
+                let report = match validate::validate_full(&data) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        warn!("keybox from {} parse failed: {e}", source);
+                        continue;
+                    }
+                };
+                if !report.ok {
+                    let summary = report
+                        .keys
+                        .iter()
+                        .filter(|k| !k.ok)
+                        .map(|k| format!("{}={}", k.algorithm, k.errors.join(",")))
+                        .collect::<Vec<_>>()
+                        .join("; ");
+                    warn!("keybox from {} rejected: {summary}", source);
                     continue;
                 }
+                let root_type = report
+                    .keys
+                    .first()
+                    .map(|k| k.root_type.as_snake_case())
+                    .unwrap_or("unknown");
                 let new_hash = sources::compute_sha256(&data);
                 if !new_hash.is_empty() && Some(&new_hash) == existing_hash.as_ref() {
-                    info!("keybox from {} identical to installed, skipping", source);
+                    info!("keybox from {} (root={root_type}) identical to installed, skipping", source);
                     return Ok(FetchResult { source: source_label(source) });
                 }
                 install_data(&data)?;
-                info!("keybox installed from {}", source);
+                info!("keybox installed from {} (root={root_type})", source);
                 return Ok(FetchResult { source: source_label(source) });
             }
             Err(e) => {
@@ -172,9 +195,25 @@ pub fn set_custom(path: &Path) -> Result<()> {
         bail!("custom keybox not found: {}", path.display());
     }
     let data = std::fs::read(path)?;
-    validate::validate(&data)?;
+    let report = validate::validate_full(&data)
+        .with_context(|| format!("validating {}", path.display()))?;
+    if !report.ok {
+        let summary = report
+            .keys
+            .iter()
+            .filter(|k| !k.ok)
+            .map(|k| format!("Keybox#{}/Key#{} ({}): {}", k.keybox_index, k.key_index, k.algorithm, k.errors.join("; ")))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        bail!("custom keybox failed validation: {summary}");
+    }
     install_data(&data)?;
-    info!("custom keybox installed from {}", path.display());
+    let root_type = report
+        .keys
+        .first()
+        .map(|k| k.root_type.as_snake_case())
+        .unwrap_or("unknown");
+    info!("custom keybox installed from {} (root={root_type})", path.display());
     Ok(())
 }
 
