@@ -1,5 +1,22 @@
 # Changelog
 
+## v5.51.0 (2026-05-01)
+
+### Features
+- **Full keybox validator** — `keybox::validate` is now a faithful Rust port of the `purainity/keybox-tools` Python `check.py` reference. Replaces the previous 39-line XML-tag-presence check with a complete cryptographic pipeline: certificate chain signature verification (RSA-PKCS1 SHA-1/256/384/512, ECDSA P-256/SHA-256, ECDSA P-384/SHA-384), leaf validity window check, leaf-to-private-key match across RSA/P-256/P-384 PKCS#8 and PKCS#1 PEM, root-type detection against four embedded trust anchors (Google hardware, AOSP-EC, AOSP-RSA, Samsung Knox), and live Google revocation check at `https://android.googleapis.com/attestation/status` with a baked-in `status.json` snapshot for offline fallback
+- **Rich validation report** — new `validate_full` API returns a per-`Key` `KeyReport` carrying root type, leaf serial, leaf subject, validity window, chain status, key-match verdict, and revocation reason. Aggregate `ValidationReport` exposes the revocation source (online vs. embedded), online error string when fallback fired, and overall `ok` flag computed as `chain_valid && validity_ok && root_type != Unknown && !revoked`
+- **`ta-enhanced keybox validate` emits JSON** — CLI handler now serializes the full report to stdout and returns exit code 1 when `report.ok` is false, suitable for shell scripts and the WebUI
+- **WebUI keybox `rootType` field** — `webui-init` JSON now carries the active keybox's root type (`google`, `aosp_ec`, `aosp_rsa`, `knox`, `unknown`) so the UI can render hardware vs. software attestation badges. WebUI rendering work left for follow-up
+
+### Bug Fixes
+- **Keybox fetch silently accepted broken keyboxes** — `fetch()` previously passed any keybox whose XML contained the right substrings, including expired, revoked, key-mismatched, chain-broken, and unknown-root payloads. The new validator rejects all of these with explicit log lines naming the failure mode, then continues to the next configured source
+- **`keybox set-custom` accepted invalid keyboxes** — install path now bails with a per-`Key` failure summary if any structural or cryptographic check fails
+
+### Changed
+- **New dependencies** — `x509-parser = "0.18.1"` for X.509 ASN.1 parsing, `p256 = "0.13.2"` and `p384 = "0.13.1"` for EC private-key public-side derivation, plus the `serialize` feature on `quick-xml` for serde-driven XML deserialization. `ring`, `rsa`, `ureq`, `base64`, and `serde` are reused; no new HTTP stack added
+- **Embedded resources** — four trust-anchor PEMs and the Google revocation snapshot now live under `rust/src/keybox/roots/` and are baked into the binary via `include_bytes!`
+- **Single-cert chain semantics** — matches `check.py`: chains shorter than two certificates pass `chain_valid` vacuously. Software keyboxes with a single self-signed cert still fail the overall `ok` check via `root_type == Unknown`
+
 ## v5.48.0 (2026-04-30)
 
 ### Features
