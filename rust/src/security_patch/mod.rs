@@ -149,6 +149,10 @@ pub fn update(config: &Config) -> Result<()> {
         info!("security patch auto-update is disabled");
         return Ok(());
     }
+    if !config.security_patch.custom_date.is_empty() {
+        info!("enforcing user custom patch: {}", config.security_patch.custom_date);
+        return set(config);
+    }
     update_force()
 }
 
