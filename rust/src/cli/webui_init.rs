@@ -73,6 +73,7 @@ pub struct ConflictApp {
 pub struct KeyboxInfo {
     pub valid: bool,
     pub source: String,
+    pub root_type: String,
     pub last_fetch: Option<String>,
     pub validation_errors: Vec<String>,
 }
@@ -98,7 +99,7 @@ fn read_module_prop(key: &str) -> Option<String> {
     .and_then(|s| {
         s.lines()
             .find(|l| l.starts_with(&format!("{key}=")))
-            .map(|l| l.splitn(2, '=').nth(1).unwrap_or("").to_string())
+            .map(|l| l.split_once('=').map(|x| x.1).unwrap_or("").to_string())
     })
 }
 
@@ -127,14 +128,27 @@ fn read_patch_dates() -> (String, String, String) {
     (system, boot, vendor)
 }
 
-fn check_keybox() -> (bool, Vec<String>) {
+fn check_keybox() -> (bool, String, Vec<String>) {
     let path = Path::new(KEYBOX_PATH);
     if !path.exists() {
-        return (false, vec!["keybox.xml not found".into()]);
+        return (false, "none".into(), vec!["keybox.xml not found".into()]);
     }
-    match crate::keybox::validate::validate_file(path) {
-        Ok(()) => (true, Vec::new()),
-        Err(e) => (false, vec![e.to_string()]),
+    match crate::keybox::validate::validate_file_full(path) {
+        Ok(report) => {
+            let root_type = report
+                .keys
+                .first()
+                .map(|k| k.root_type.as_snake_case().to_string())
+                .unwrap_or_else(|| "unknown".into());
+            let errors: Vec<String> = report
+                .keys
+                .iter()
+                .filter(|k| !k.ok)
+                .flat_map(|k| k.errors.clone())
+                .collect();
+            (report.ok, root_type, errors)
+        }
+        Err(e) => (false, "unknown".into(), vec![e.to_string()]),
     }
 }
 
@@ -165,7 +179,7 @@ pub fn handle_webui_init(cfg: &Config) -> anyhow::Result<()> {
     let engine_running = crate::health::is_engine_enabled();
     let total = count_target_entries();
     let (system, boot, vendor) = read_patch_dates();
-    let (kb_valid, kb_errors) = check_keybox();
+    let (kb_valid, kb_root_type, kb_errors) = check_keybox();
     let vbhash_active = std::fs::read_to_string(BOOT_HASH_PATH)
         .map(|h| h.trim().len() == 64 && h.trim().chars().all(|c| c.is_ascii_hexdigit()))
         .unwrap_or(false);
@@ -177,7 +191,7 @@ pub fn handle_webui_init(cfg: &Config) -> anyhow::Result<()> {
         .unwrap_or_default();
     let ts_ver: u32 = ts_prop.lines()
         .find(|l| l.starts_with("versionCode="))
-        .and_then(|l| l.splitn(2, '=').nth(1)?.trim().parse().ok())
+        .and_then(|l| l.split_once('=')?.1.trim().parse().ok())
         .unwrap_or(0);
     let has_james = ts_prop.contains("James");
     let has_beakthoven = ts_prop.contains("beakthoven");
@@ -217,6 +231,7 @@ pub fn handle_webui_init(cfg: &Config) -> anyhow::Result<()> {
         keybox: KeyboxInfo {
             valid: kb_valid,
             source: if kb_valid { cfg.keybox.source.clone() } else { "none".into() },
+            root_type: kb_root_type,
             last_fetch: None,
             validation_errors: kb_errors,
         },
