@@ -173,4 +173,8 @@
     <string name="health_active">ทำงานอยู่</string>
     <string name="health_not_running">ไม่ทำงาน</string>
     <string name="health_unknown">ไม่ทราบ</string>
+    <string name="health_keybox_ok">OK</string>
+    <string name="health_keybox_revoked">Revoked</string>
+    <string name="health_keybox_invalid">Invalid</string>
+    <string name="health_keybox_missing">No Keybox</string>
 </resources>

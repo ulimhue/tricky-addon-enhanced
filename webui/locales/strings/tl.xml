@@ -173,4 +173,8 @@
     <string name="health_active">Aktibo</string>
     <string name="health_not_running">Hindi tumatakbo</string>
     <string name="health_unknown">Hindi alam</string>
+    <string name="health_keybox_ok">OK</string>
+    <string name="health_keybox_revoked">Revoked</string>
+    <string name="health_keybox_invalid">Invalid</string>
+    <string name="health_keybox_missing">No Keybox</string>
 </resources>

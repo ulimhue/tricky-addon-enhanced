@@ -172,4 +172,8 @@
     <string name="health_active">Активен</string>
     <string name="health_not_running">Не запущен</string>
     <string name="health_unknown">Неизвестно</string>
+    <string name="health_keybox_ok">OK</string>
+    <string name="health_keybox_revoked">Revoked</string>
+    <string name="health_keybox_invalid">Invalid</string>
+    <string name="health_keybox_missing">No Keybox</string>
 </resources>
