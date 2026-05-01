@@ -1215,7 +1215,7 @@ dependencies = [
 
 [[package]]
 name = "ta-enhanced"
-version = "5.52.0"
+version = "5.53.1"
 dependencies = [
  "anyhow",
  "base64",

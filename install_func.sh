@@ -101,9 +101,9 @@ com.coloros.sceneservice"
 
 # System-apps-only target.txt for manual mode
 generate_minimal_target() {
-    local system_apps="com.google.android.gms
-com.google.android.gsf
-com.android.vending
+    local system_apps="com.google.android.gms!
+com.google.android.gsf!
+com.android.vending!
 com.facebook.appmanager
 com.facebook.services
 com.facebook.system
@@ -183,9 +183,9 @@ generate_initial_target() {
     local user_packages
     user_packages=$(pm list packages -3 2>/dev/null | sed 's/^package://' | sort)
 
-    local system_apps="com.google.android.gms
-com.google.android.gsf
-com.android.vending
+    local system_apps="com.google.android.gms!
+com.google.android.gsf!
+com.android.vending!
 com.facebook.appmanager
 com.facebook.services
 com.facebook.system

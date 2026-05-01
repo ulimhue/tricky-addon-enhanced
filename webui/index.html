@@ -41,6 +41,7 @@
       .keybox-badge.kb-ok{background:rgba(0,214,143,.12);color:var(--color-success,#00D68F);border-color:rgba(0,214,143,.3)}
       .keybox-badge.kb-revoked{background:rgba(255,61,113,.15);color:var(--color-error,#FF3D71);border-color:rgba(255,61,113,.4)}
       .keybox-badge.kb-invalid{background:rgba(255,184,0,.15);color:var(--color-warning,#FFB800);border-color:rgba(255,184,0,.4)}
+      .keybox-badge.kb-aosp{background:rgba(79,195,247,.15);color:#4FC3F7;border-color:rgba(79,195,247,.4)}
       .keybox-badge.kb-missing{background:rgba(255,255,255,.06);color:var(--text-tertiary,rgba(255,255,255,.55));border-color:rgba(255,255,255,.12)}
     </style>
   <link rel="preload" href="./assets/material-symbols-outlined-D4N9P62f.woff2" as="font" type="font/woff2" crossorigin>
@@ -135,7 +136,12 @@
         <span hidden data-i18n="health_keybox_ok" id="i18n-keybox-ok"></span>
         <span hidden data-i18n="health_keybox_revoked" id="i18n-keybox-revoked"></span>
         <span hidden data-i18n="health_keybox_invalid" id="i18n-keybox-invalid"></span>
+        <span hidden data-i18n="health_keybox_aosp" id="i18n-keybox-aosp"></span>
         <span hidden data-i18n="health_keybox_missing" id="i18n-keybox-missing"></span>
+        <span hidden data-i18n="prompt_saved_target" id="i18n-prompt-saved-target"></span>
+        <span hidden data-i18n="prompt_save_error" id="i18n-prompt-save-error"></span>
+        <span hidden data-i18n="prompt_flag_failed" id="i18n-prompt-flag-failed"></span>
+        <span hidden data-i18n="prompt_reboot_required" id="i18n-prompt-reboot-required"></span>
     </div>
 
     <!-- Applist Display -->
@@ -552,6 +558,24 @@
             try { ksu.exec(cmd, '{}', cb); }
             catch (e) { delete window[cb]; resolve({ errno: 1, stdout: '', stderr: String(e) }); }
         });
+        window.y = (key, isError = false, duration = 1200) => {
+            const c = document.querySelector('.prompt-container');
+            const p = document.getElementById('prompt');
+            if (!c || !p) return;
+            const text = p.querySelector('.prompt-text');
+            const icon = p.querySelector('.prompt-icon');
+            const anchor = document.getElementById(`i18n-${key.replace(/_/g, '-')}`);
+            if (text) text.textContent = (anchor && anchor.textContent.trim()) || key;
+            if (icon) icon.textContent = isError ? 'error' : 'check_circle';
+            p.classList.toggle('error', isError);
+            p.classList.add('show');
+            try { c.showPopover(); } catch {}
+            clearTimeout(window.promptTimeout);
+            window.promptTimeout = setTimeout(() => {
+                p.classList.remove('show');
+                try { c.hidePopover(); } catch {}
+            }, duration);
+        };
         const setOn = (toggle, on) => {
             const track = toggle.querySelector('.toggle-track');
             if (track) track.classList.toggle('active', !!on);
@@ -631,6 +655,11 @@
                 scheduleFlush();
             }
         }, true);
+        document.addEventListener('click', (ev) => {
+            if (ev.target && ev.target.closest && ev.target.closest('.card[data-package]')) {
+                scheduleFlush();
+            }
+        }, true);
         ['select-all', 'deselect-all', 'select-denylist', 'deselect-unnecessary']
             .forEach(id => {
                 const el = document.getElementById(id);
@@ -648,18 +677,20 @@
                 badge.hidden = true;
                 return true;
             }
-            const { valid, revoked } = cache.keybox;
+            const { valid, rootType } = cache.keybox;
             const missing = (cache.keybox.validationErrors || [])
                 .some(e => /not found/i.test(e));
+            const isAospDevice = cache.status?.isAospDevice === true;
+            const isAospKeybox = rootType === 'aosp_ec' || rootType === 'aosp_rsa';
             const t = (id, fallback) => {
                 const a = document.getElementById(id);
                 return (a && a.textContent.trim()) || fallback;
             };
             let kind, label;
-            if (revoked)      { kind = 'revoked'; label = t('i18n-keybox-revoked', 'Revoked'); }
-            else if (missing) { kind = 'missing'; label = t('i18n-keybox-missing', 'No Keybox'); }
-            else if (!valid)  { kind = 'invalid'; label = t('i18n-keybox-invalid', 'Invalid'); }
-            else              { kind = 'ok';      label = t('i18n-keybox-ok', 'OK'); }
+            if (missing)                                       { kind = 'missing'; label = t('i18n-keybox-missing', 'No Keybox'); }
+            else if (!valid)                                   { kind = 'invalid'; label = t('i18n-keybox-invalid', 'Invalid'); }
+            else if (isAospKeybox && !isAospDevice)            { kind = 'aosp';    label = t('i18n-keybox-aosp', 'AOSP'); }
+            else                                               { kind = 'ok';      label = t('i18n-keybox-ok', 'OK'); }
             badge.className = `keybox-badge kb-${kind}`;
             badge.textContent = label;
             badge.title = (cache.keybox.validationErrors || []).join('\n') || `Keybox: ${label}`;

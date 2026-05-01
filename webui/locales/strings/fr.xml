@@ -175,6 +175,7 @@
     <string name="health_unknown">Inconnu</string>
     <string name="health_keybox_ok">OK</string>
     <string name="health_keybox_revoked">Revoked</string>
+    <string name="health_keybox_aosp">AOSP</string>
     <string name="health_keybox_invalid">Invalid</string>
     <string name="health_keybox_missing">No Keybox</string>
 </resources>

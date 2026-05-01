@@ -132,7 +132,7 @@ pub fn validate_full(data: &[u8]) -> Result<ValidationReport> {
         bail!("no <Key> elements found in any <Keybox>");
     }
 
-    let ok = keys.iter().all(|k| k.ok);
+    let ok = keys.iter().any(|k| k.ok);
     Ok(ValidationReport {
         ok,
         revocation_source: revocation.source,
@@ -355,9 +355,6 @@ fn check_key(
     };
 
     if let Some((sn, reason)) = lookup_revocation(&certs, entries) {
-        report
-            .errors
-            .push(format!("certificate {sn} revoked: {reason}"));
         report.revocation_serial = Some(sn);
         report.revocation_reason = Some(reason);
     }
@@ -365,7 +362,6 @@ fn check_key(
     report.ok = report.chain_valid
         && report.validity_ok
         && report.root_type != KeyboxRootType::Unknown
-        && report.revocation_reason.is_none()
         && report.key_match != KeyMatch::Mismatched;
 
     report
@@ -576,18 +572,15 @@ fn lookup_revocation(
     if entries.is_empty() {
         return None;
     }
-    for cert in certs {
-        let sn = format!("{:x}", cert.tbs_certificate.serial);
-        if let Some(entry) = entries.get(&sn) {
-            let reason = entry
-                .get("reason")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or("UNKNOWN")
-                .to_string();
-            return Some((sn, reason));
-        }
-    }
-    None
+    let leaf = certs.first()?;
+    let sn = format!("{:x}", leaf.tbs_certificate.serial);
+    let entry = entries.get(&sn)?;
+    let reason = entry
+        .get("reason")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("UNKNOWN")
+        .to_string();
+    Some((sn, reason))
 }
 
 #[derive(Clone)]

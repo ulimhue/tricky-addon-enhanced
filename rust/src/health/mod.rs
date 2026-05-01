@@ -79,6 +79,18 @@ pub fn handle_health(action: HealthAction, cfg: &Config) -> anyhow::Result<()> {
 }
 
 pub fn detect_engine() -> String {
+    if let Ok(entries) = std::fs::read_dir("/data/adb/modules") {
+        for entry in entries.flatten() {
+            if let Ok(content) = std::fs::read_to_string(entry.path().join("module.prop")) {
+                if let Some(name) = content.lines().find_map(|l| l.strip_prefix("name=")) {
+                    let name = name.trim();
+                    if name.starts_with("TEESimulator") {
+                        return name.to_string();
+                    }
+                }
+            }
+        }
+    }
     for dir in [TS_MODULE, TS_MODULE_HIDDEN] {
         let prop = Path::new(dir).join("module.prop");
         if let Ok(content) = std::fs::read_to_string(&prop) {

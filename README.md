@@ -103,7 +103,7 @@ Real-time status directly in your module manager — no need to open anything.
 **WebUI**
 - [x] **Glass morphism design** — AMOLED dark gradient (`#0F0F1A` → `#1A1A2E`), 6 accent color presets with random selection on launch
 - [x] **Health status banner** — live engine state (green/red/orange)
-- [x] **Keybox status pill:** green `OK`, red `Revoked`, amber `Invalid`, gray `No Keybox`, derived live from the keybox validation report with the full error list on hover
+- [x] **Keybox status pill:** green `OK`, blue `AOSP` when an AOSP-rooted keybox is loaded on a non-AOSP device, amber `Invalid` for structural failures, gray `No Keybox` when absent. Hover surfaces the full validation error list. Revocation is exposed as JSON metadata but no longer drives the badge color since TEESimulator routes around Google's attestation status list at runtime
 - [x] **Keybox automation panel** — 6 source cards, interval scheduler with preset chips (1h–7d) and custom input with min/hr/day toggle, manual fetch
 - [x] **Target list auto-refresh** — every 3s, with search and per-app mode control
 - [x] **23 languages** with RTL support

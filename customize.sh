@@ -164,11 +164,6 @@ if [ "$AUTOMATION_ENABLED" -eq 1 ]; then
     generate_initial_target
 elif [ "$HAS_TARGET" -eq 1 ]; then
     ui_print "  📋 $(_msg target_preserved)"
-    for _app in com.google.android.gms com.google.android.gsf com.android.vending \
-                 com.oplus.deepthinker com.heytap.speechassist com.coloros.sceneservice; do
-        pm list packages -s 2>/dev/null | grep -q "package:$_app" || continue
-        grep -qxF "$_app" "$TARGET_FILE" 2>/dev/null || echo "$_app" >> "$TARGET_FILE"
-    done
     pm list packages -3 2>/dev/null | sed 's/^package://' | sort > "$AUTOMATION_DIR/known_packages.txt"
 else
     generate_minimal_target

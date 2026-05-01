@@ -1,5 +1,33 @@
 # Changelog
 
+## v5.53.1 (2026-05-01)
+
+### Bug Fixes
+- WebUI engine detector (`_c()` in `webui/assets/index-migrated.min.js`) scans `/data/adb/modules/*/module.prop` for `name=TEESimulator*` before falling back to the daemon nice-name and module.prop lookups. Fixes TEESimulator-rs forks displaying as upstream `TEESimulator` on the badge.
+- Save toast pill anchored at `bottom-inset + 8px` with 11px font and 13px icon. `pointer-events:none` retained in the `.show` state so taps pass through to the package list. Default duration reduced to 1200ms.
+- Card-body taps trigger autosave. Programmatic `md-checkbox.checked` toggles do not dispatch `change`, so a sibling click listener on `.card[data-package]` calls `scheduleFlush()` directly. Coalesced with the existing change-event path via `saveScheduled`.
+
+## v5.53.0 (2026-05-01)
+
+### Bug Fixes
+- Keybox badge no longer reports `Revoked` for working keyboxes. Revocation is now informational metadata. Badge states: `OK`, `Invalid`, `No Keybox`.
+- `keybox fetch` install gate checks structural validity only: chain integrity, validity window, recognized root, leaf-to-private-key match. Stops rejecting revoked keyboxes from public sources.
+- `lookup_revocation` (`rust/src/keybox/validate.rs`) inspects the leaf only. Removes false positives from intermediate-CA entries in unrelated chains of a multi-Key keybox.
+- `rust/src/keybox/roots/status.json` refreshed from `https://android.googleapis.com/attestation/status`. 1660 hex entries replace the prior 517-entry mixed-format snapshot.
+- `window.y` bound to the global so the inline-script autosave, flag-toggle, and reboot-required prompts produce visible toasts. The bundled `y()` is module-scoped and not reachable from `webui/index.html`.
+
+### Features
+- AOSP keybox badge state. Health banner shows a blue `AOSP` pill when an AOSP-rooted keybox (`aosp_ec` or `aosp_rsa`) is loaded on a non-AOSP device. AOSP detection reads `ro.build.tags` from `/system/build.prop`.
+- `detect_engine()` (`rust/src/health/mod.rs`) scans installed modules for `name=TEESimulator*` and returns the exact fork name. The badge now shows `TEESimulator-rs` for the Rust fork and `TEESimulator` for upstream.
+- Automatic-mode `target.txt` seed includes `com.google.android.gms!`, `com.google.android.gsf!`, and `com.android.vending!`. Applied in both `generate_initial_target()` and `generate_minimal_target()` in `install_func.sh`.
+
+### Changed
+- `ValidationReport.ok` aggregates with `any` instead of `all`. A multi-Key keybox installs when at least one Key is structurally valid.
+- `KeyboxInfo` JSON drops the `revoked` field. Revocation metadata remains as `revocation_serial` and `revocation_reason` per Key.
+- `StatusInfo` JSON adds `is_aosp_device: bool`.
+- `health_keybox_aosp` i18n key added to `webui/locales/template.xml` and 24 per-language strings files.
+- Manual install (vol-down) preserves any existing `target.txt` verbatim. Removed the unconditional GMS/GSF/Vending/Oplus/Coloros append loop in `customize.sh`.
+
 ## v5.52.0 (2026-05-01)
 
 ### Features
