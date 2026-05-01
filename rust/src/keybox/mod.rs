@@ -100,8 +100,10 @@ pub fn handle_keybox(action: KeyboxAction, cfg: &Config) -> Result<()> {
 }
 
 pub fn fetch(config: &Config) -> Result<FetchResult> {
-    let preferred = KeyboxSource::from_str(&config.keybox.source)
-        .unwrap_or_default();
+    let preferred = KeyboxSource::from_str(&config.keybox.source).unwrap_or_else(|e| {
+        warn!("keybox source {:?} invalid ({e}); defaulting to yurikey", config.keybox.source);
+        KeyboxSource::default()
+    });
     let custom_url = &config.keybox.custom_url;
 
     let order = build_source_order(preferred);
