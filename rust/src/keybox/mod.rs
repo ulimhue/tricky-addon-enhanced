@@ -179,8 +179,10 @@ pub fn set_custom(path: &Path) -> Result<()> {
 }
 
 pub fn get_sources(config: &Config) -> Vec<SourceInfo> {
-    let active = KeyboxSource::from_str(&config.keybox.source)
-        .unwrap_or_default();
+    let active = KeyboxSource::from_str(&config.keybox.source).unwrap_or_else(|e| {
+        warn!("keybox source {:?} invalid ({e}); defaulting to yurikey", config.keybox.source);
+        KeyboxSource::default()
+    });
     vec![
         SourceInfo { name: "yurikey".into(), active: active == KeyboxSource::Yurikey },
         SourceInfo { name: "upstream".into(), active: active == KeyboxSource::Upstream },
