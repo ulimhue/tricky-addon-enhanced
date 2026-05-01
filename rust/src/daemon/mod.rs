@@ -81,6 +81,7 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
 
     let mut config = Config::load(Some(Path::new(CONFIG_PATH)))?;
     crate::logging::init(false, &config.logging)?;
+    crate::region::apply(&config.region);
 
     crate::platform::signal::block_signals()?;
 
@@ -197,6 +198,9 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
                     Ok(new_config) => {
                         tracing::info!("config reloaded");
                         sched.reconfigure(&config, &new_config);
+                        if config.region != new_config.region {
+                            crate::region::apply(&new_config.region);
+                        }
                         config = new_config;
                         status_debounce = Some(now + 200);
                     }

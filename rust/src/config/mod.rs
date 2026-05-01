@@ -200,7 +200,7 @@ impl Default for PropsConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RegionConfig {
     pub enabled: bool,

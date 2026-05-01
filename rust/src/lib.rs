@@ -5,6 +5,7 @@ pub mod logging;
 pub mod config;
 pub mod keybox;
 pub mod security_patch;
+pub mod region;
 pub mod automation;
 pub mod health;
 pub mod conflict;
