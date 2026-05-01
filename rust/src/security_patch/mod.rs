@@ -129,7 +129,26 @@ pub fn set(config: &Config) -> Result<()> {
 
     let variant = detect_variant();
     info!("detected TrickyStore variant: {variant}");
+    if patch_file_already_matches(&variant, &dates) {
+        return Ok(());
+    }
     write_patch_dates(&variant, &dates)
+}
+
+fn patch_file_already_matches(variant: &TrickyStoreVariant, dates: &PatchDates) -> bool {
+    match variant {
+        TrickyStoreVariant::Standard => {
+            let Ok(content) = std::fs::read_to_string(SECURITY_PATCH_FILE) else { return false; };
+            content.contains(&format!("system={}", dates.system))
+                && content.contains(&format!("boot={}", dates.boot))
+                && content.contains(&format!("vendor={}", dates.vendor))
+        }
+        TrickyStoreVariant::James => {
+            let Ok(content) = std::fs::read_to_string(DEVCONFIG_TOML) else { return false; };
+            content.contains(&format!("securityPatch = \"{}\"", dates.system))
+        }
+        TrickyStoreVariant::Legacy => false,
+    }
 }
 
 pub fn set_custom(system: &str, boot: &str, vendor: &str) -> Result<()> {
