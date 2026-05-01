@@ -615,6 +615,7 @@
             saveScheduled = true;
             queueMicrotask(flushTargetTxt);
         };
+        window.scheduleFlush = scheduleFlush;
         document.addEventListener('change', (ev) => {
             if (ev.target && ev.target.matches && ev.target.matches('md-checkbox.checkbox')) {
                 scheduleFlush();
