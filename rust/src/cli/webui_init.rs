@@ -72,6 +72,7 @@ pub struct ConflictApp {
 #[serde(rename_all = "camelCase")]
 pub struct KeyboxInfo {
     pub valid: bool,
+    pub revoked: bool,
     pub source: String,
     pub root_type: String,
     pub last_fetch: Option<String>,
@@ -128,10 +129,10 @@ fn read_patch_dates() -> (String, String, String) {
     (system, boot, vendor)
 }
 
-fn check_keybox() -> (bool, String, Vec<String>) {
+fn check_keybox() -> (bool, String, bool, Vec<String>) {
     let path = Path::new(KEYBOX_PATH);
     if !path.exists() {
-        return (false, "none".into(), vec!["keybox.xml not found".into()]);
+        return (false, "none".into(), false, vec!["keybox.xml not found".into()]);
     }
     match crate::keybox::validate::validate_file_full(path) {
         Ok(report) => {
@@ -140,15 +141,16 @@ fn check_keybox() -> (bool, String, Vec<String>) {
                 .first()
                 .map(|k| k.root_type.as_snake_case().to_string())
                 .unwrap_or_else(|| "unknown".into());
+            let revoked = report.keys.iter().any(|k| k.revocation_reason.is_some());
             let errors: Vec<String> = report
                 .keys
                 .iter()
                 .filter(|k| !k.ok)
                 .flat_map(|k| k.errors.clone())
                 .collect();
-            (report.ok, root_type, errors)
+            (report.ok, root_type, revoked, errors)
         }
-        Err(e) => (false, "unknown".into(), vec![e.to_string()]),
+        Err(e) => (false, "unknown".into(), false, vec![e.to_string()]),
     }
 }
 
@@ -179,7 +181,7 @@ pub fn handle_webui_init(cfg: &Config) -> anyhow::Result<()> {
     let engine_running = crate::health::is_engine_enabled();
     let total = count_target_entries();
     let (system, boot, vendor) = read_patch_dates();
-    let (kb_valid, kb_root_type, kb_errors) = check_keybox();
+    let (kb_valid, kb_root_type, kb_revoked, kb_errors) = check_keybox();
     let vbhash_active = std::fs::read_to_string(BOOT_HASH_PATH)
         .map(|h| h.trim().len() == 64 && h.trim().chars().all(|c| c.is_ascii_hexdigit()))
         .unwrap_or(false);
@@ -230,6 +232,7 @@ pub fn handle_webui_init(cfg: &Config) -> anyhow::Result<()> {
         conflicts: build_conflicts(cfg),
         keybox: KeyboxInfo {
             valid: kb_valid,
+            revoked: kb_revoked,
             source: if kb_valid { cfg.keybox.source.clone() } else { "none".into() },
             root_type: kb_root_type,
             last_fetch: None,
