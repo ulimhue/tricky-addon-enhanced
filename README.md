@@ -74,6 +74,10 @@ One binary. One process. One config file. No shell scripts in the hot path.
 - [x] **Captured at install time** — reads `ro.boot.vbmeta.digest` before any modules are active
 - [x] **Fallback chain** — persisted file → bootloader property → APK extraction (last resort)
 
+**Custom ROM Identity Hiding**
+- [x] **LineageOS prop scrub on boot:** strips the `lineage_` prefix from `ro.product.vendor.name`, replaces `org.lineageos.aperture` in `vendor.camera.aux.packagelist` and `persist.vendor.camera.privapp.list`, stops `vendor.lineage_health` and deletes its `init.svc.*` status prop
+- [x] **Stock-safe gating:** every block matches a LineageOS-only signature before writing, so stock ROMs trigger nothing
+
 **Attestation Engine Health Monitor**
 - [x] **Auto-restart on crash** — polls every 10s, detects TEESimulator or TrickyStore, restarts if dead
 - [x] **Grace period** — 5s window for the engine's internal restart loop before intervening
@@ -99,6 +103,7 @@ Real-time status directly in your module manager — no need to open anything.
 **WebUI**
 - [x] **Glass morphism design** — AMOLED dark gradient (`#0F0F1A` → `#1A1A2E`), 6 accent color presets with random selection on launch
 - [x] **Health status banner** — live engine state (green/red/orange)
+- [x] **Keybox status pill:** green `OK`, red `Revoked`, amber `Invalid`, gray `No Keybox`, derived live from the keybox validation report with the full error list on hover
 - [x] **Keybox automation panel** — 6 source cards, interval scheduler with preset chips (1h–7d) and custom input with min/hr/day toggle, manual fetch
 - [x] **Target list auto-refresh** — every 3s, with search and per-app mode control
 - [x] **23 languages** with RTL support

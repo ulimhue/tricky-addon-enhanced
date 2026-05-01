@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.52.0 (2026-05-01)
+
+### Features
+- **Keybox status badge in the health banner.** The WebUI status row now renders a colored pill next to the engine state showing the active keybox condition: green `OK` when valid, red `Revoked` when the leaf appears in Google's attestation status list, amber `Invalid` for any other validation failure, and gray `No Keybox` when the file is absent. Driven by the existing `webui-init` JSON cached in `localStorage`, so the badge adds no extra `ksu.exec` call. Hover surfaces the full validation error list when the keybox is degraded.
+- **Custom ROM identity scrub at boot.** `prop.sh` now strips the `lineage_` prefix from `ro.product.vendor.name`, rewrites `vendor.camera.aux.packagelist` and `persist.vendor.camera.privapp.list` to `com.android.camera` whenever they reference `org.lineageos`, and stops the `vendor.lineage_health` service before deleting its `init.svc.*` status prop. Every block is gated on the LineageOS-only signature being present, so stock devices match nothing and write nothing.
+
+### Changed
+- **`KeyboxInfo` payload exposes `revoked: bool`.** `webui-init` JSON now carries an explicit revocation flag derived from `keybox::validate::ValidationReport.keys[].revocation_reason`, so the WebUI does not need to substring-match error text to detect a revoked keybox.
+- **i18n adds four health-banner keys.** `health_keybox_ok`, `health_keybox_revoked`, `health_keybox_invalid`, and `health_keybox_missing` land in `webui/locales/template.xml` and the 23 per-language strings files. Non-English locales carry the English literal as a placeholder pending translator contributions.
+
 ## v5.51.0 (2026-05-01)
 
 ### Features
