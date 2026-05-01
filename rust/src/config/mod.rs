@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 
 pub static SELF_WRITE: AtomicBool = AtomicBool::new(false);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub general: GeneralConfig,
@@ -22,25 +22,6 @@ pub struct Config {
     pub region: RegionConfig,
     pub logging: LoggingConfig,
     pub ui: UiConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            general: GeneralConfig::default(),
-            keybox: KeyboxConfig::default(),
-            security_patch: SecurityPatchConfig::default(),
-            automation: AutomationConfig::default(),
-            health: HealthConfig::default(),
-            status: StatusConfig::default(),
-            vbhash: VbhashConfig::default(),
-            conflict: ConflictConfig::default(),
-            props: PropsConfig::default(),
-            region: RegionConfig::default(),
-            logging: LoggingConfig::default(),
-            ui: UiConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,16 +169,10 @@ impl Default for ConflictConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PropsConfig {
     pub custom_props: Vec<[String; 2]>,
-}
-
-impl Default for PropsConfig {
-    fn default() -> Self {
-        Self { custom_props: Vec::new() }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -484,7 +459,7 @@ impl Config {
             self.ui.language = "en".into();
         }
         if !self.logging.log_dir.starts_with("/data/adb/") {
-            warnings.push(format!("logging.log_dir: reset to default (must be under /data/adb/)"));
+            warnings.push("logging.log_dir: reset to default (must be under /data/adb/)".to_string());
             self.logging.log_dir = "/data/adb/tricky_store/ta-enhanced/logs".into();
         }
 

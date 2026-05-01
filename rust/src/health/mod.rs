@@ -20,9 +20,10 @@ pub enum EngineStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CircuitState {
+    #[default]
     Closed,
     Open,
     HalfOpen,
@@ -40,12 +41,6 @@ pub struct HealthState {
     pub circuit: CircuitState,
     #[serde(default)]
     pub backoff_secs: u64,
-}
-
-impl Default for CircuitState {
-    fn default() -> Self {
-        CircuitState::Closed
-    }
 }
 
 impl Default for HealthState {

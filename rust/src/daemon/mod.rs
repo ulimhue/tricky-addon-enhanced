@@ -45,7 +45,7 @@ pub fn handle_daemon_stop() -> anyhow::Result<()> {
 
 pub fn handle_daemon_status() -> anyhow::Result<()> {
     let pid = crate::platform::process::read_pid(Path::new(PID_FILE));
-    let running = pid.map(|p| crate::platform::process::is_running(p)).unwrap_or(false);
+    let running = pid.map(crate::platform::process::is_running).unwrap_or(false);
     let status = serde_json::json!({
         "running": running,
         "pid": if running { pid } else { None },
@@ -146,8 +146,8 @@ fn run_daemon(manager: Option<String>) -> anyhow::Result<()> {
 
         let now = monotonic_ms();
 
-        for i in 0..n as usize {
-            let tag = events[i].u64;
+        for event in events.iter().take(n as usize) {
+            let tag = event.u64;
             match tag {
                 TAG_SIGNAL => {
                     drain_signalfd(signal_fd);

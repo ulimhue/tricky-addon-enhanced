@@ -227,7 +227,7 @@ fn read_module_prop(key: &str) -> Option<String> {
     content
         .lines()
         .find(|l| l.starts_with(&format!("{key}=")))
-        .map(|l| l.splitn(2, '=').nth(1).unwrap_or("").to_string())
+        .map(|l| l.split_once('=').map(|x| x.1).unwrap_or("").to_string())
 }
 
 fn find_module_dir() -> Option<String> {

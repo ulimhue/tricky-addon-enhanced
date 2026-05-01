@@ -267,12 +267,10 @@ fn write_james(dates: &PatchDates) -> Result<()> {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    } else if content.is_empty() {
+        new_line
     } else {
-        if content.is_empty() {
-            new_line
-        } else {
-            format!("{content}\n{new_line}")
-        }
+        format!("{content}\n{new_line}")
     };
 
     atomic_write(path, updated.as_bytes())

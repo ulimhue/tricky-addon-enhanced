@@ -40,7 +40,7 @@ pub fn fetch_custom_url(url: &str) -> Result<Vec<u8>> {
 
 fn hex_decode(s: &str) -> Result<String> {
     let clean: String = s.chars().filter(|c| c.is_ascii_hexdigit()).collect();
-    if clean.len() % 2 != 0 {
+    if !clean.len().is_multiple_of(2) {
         bail!("hex string has odd length");
     }
     let bytes: Result<Vec<u8>, _> = (0..clean.len())

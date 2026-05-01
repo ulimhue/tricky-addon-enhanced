@@ -129,7 +129,7 @@ pub fn is_xposed_module(package: &str) -> bool {
 pub fn show_status() -> DaemonStatus {
     let pid_path = Path::new("/data/adb/tricky_store/ta-enhanced/daemon.pid");
     let pid = crate::platform::process::read_pid(pid_path);
-    let running = pid.map(|p| crate::platform::process::is_running(p)).unwrap_or(false);
+    let running = pid.map(crate::platform::process::is_running).unwrap_or(false);
     let target_count = target::read_target().map(|t| t.len() as u32).unwrap_or(0);
     let last_activity = std::fs::metadata(KNOWN_PACKAGES)
         .and_then(|m| m.modified())
