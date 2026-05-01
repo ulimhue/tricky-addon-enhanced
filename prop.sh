@@ -64,6 +64,27 @@ contains_reset_prop "ro.bootmode" "recovery" "unknown"
 contains_reset_prop "ro.boot.bootmode" "recovery" "unknown"
 contains_reset_prop "vendor.boot.bootmode" "recovery" "unknown"
 
+# Custom ROM (LineageOS) identity scrub: only fires when LOS-only signatures are present
+v=$($RP ro.product.vendor.name)
+case "$v" in
+    lineage_*) $RP -n ro.product.vendor.name "${v#lineage_}" ;;
+esac
+
+v=$($RP vendor.camera.aux.packagelist)
+case "$v" in
+    *org.lineageos*) $RP -n vendor.camera.aux.packagelist "com.android.camera" ;;
+esac
+
+v=$($RP persist.vendor.camera.privapp.list)
+case "$v" in
+    *org.lineageos*) $RP -n persist.vendor.camera.privapp.list "com.android.camera" ;;
+esac
+
+[ -n "$($RP init.svc.vendor.lineage_health)" ] && {
+    setprop ctl.stop vendor.lineage_health
+    $RP -d init.svc.vendor.lineage_health
+}
+
 # Reset vbmeta related prop
 empty_reset_prop "ro.boot.vbmeta.device_state" "locked"
 empty_reset_prop "ro.boot.vbmeta.invalidate_on_error" "yes"
