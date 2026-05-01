@@ -37,6 +37,11 @@
       #region-extra{display:flex;flex-direction:column;gap:12px;overflow:hidden;max-height:0;opacity:0;transition:max-height .2s ease,opacity .15s ease}
       #region-extra.expanded{max-height:300px;opacity:1;padding-top:4px}
       .interval-badge{font-size:11px;font-weight:400;padding:2px 8px;border-radius:10px;background:rgba(var(--accent-rgb,0,214,143),.15);color:rgb(var(--accent-rgb,0,214,143));margin-left:6px;vertical-align:middle}
+      .keybox-badge{margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.3px;text-transform:uppercase;line-height:1.4;border:1px solid transparent}
+      .keybox-badge.kb-ok{background:rgba(0,214,143,.12);color:var(--color-success,#00D68F);border-color:rgba(0,214,143,.3)}
+      .keybox-badge.kb-revoked{background:rgba(255,61,113,.15);color:var(--color-error,#FF3D71);border-color:rgba(255,61,113,.4)}
+      .keybox-badge.kb-invalid{background:rgba(255,184,0,.15);color:var(--color-warning,#FFB800);border-color:rgba(255,184,0,.4)}
+      .keybox-badge.kb-missing{background:rgba(255,255,255,.06);color:var(--text-tertiary,rgba(255,255,255,.55));border-color:rgba(255,255,255,.12)}
     </style>
   <link rel="preload" href="./assets/material-symbols-outlined-D4N9P62f.woff2" as="font" type="font/woff2" crossorigin>
   <script type="module" crossorigin src="./assets/index-migrated.min.js"></script>
@@ -126,6 +131,11 @@
         <div class="health-dot" id="health-dot"></div>
         <span class="health-label" id="health-engine-name" data-i18n="health_engine_default">Attestation</span>
         <span class="health-status" id="health-status-text" data-i18n="health_checking">Checking...</span>
+        <span class="keybox-badge" id="keybox-badge" hidden></span>
+        <span hidden data-i18n="health_keybox_ok" id="i18n-keybox-ok"></span>
+        <span hidden data-i18n="health_keybox_revoked" id="i18n-keybox-revoked"></span>
+        <span hidden data-i18n="health_keybox_invalid" id="i18n-keybox-invalid"></span>
+        <span hidden data-i18n="health_keybox_missing" id="i18n-keybox-missing"></span>
     </div>
 
     <!-- Applist Display -->
@@ -626,11 +636,49 @@
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('click', () => setTimeout(scheduleFlush, 0));
             });
+        const renderKeyboxBadge = () => {
+            const badge = document.getElementById('keybox-badge');
+            if (!badge) return false;
+            let cache;
+            try { cache = JSON.parse(localStorage.getItem('tricky-webui-cache') || 'null'); }
+            catch { cache = null; }
+            if (!cache || cache.v !== 2 || !cache.keybox) return false;
+            const kbEnabled = cache.config?.keybox?.enabled !== false;
+            if (!kbEnabled) {
+                badge.hidden = true;
+                return true;
+            }
+            const { valid, revoked } = cache.keybox;
+            const missing = (cache.keybox.validationErrors || [])
+                .some(e => /not found/i.test(e));
+            const t = (id, fallback) => {
+                const a = document.getElementById(id);
+                return (a && a.textContent.trim()) || fallback;
+            };
+            let kind, label;
+            if (revoked)      { kind = 'revoked'; label = t('i18n-keybox-revoked', 'Revoked'); }
+            else if (missing) { kind = 'missing'; label = t('i18n-keybox-missing', 'No Keybox'); }
+            else if (!valid)  { kind = 'invalid'; label = t('i18n-keybox-invalid', 'Invalid'); }
+            else              { kind = 'ok';      label = t('i18n-keybox-ok', 'OK'); }
+            badge.className = `keybox-badge kb-${kind}`;
+            badge.textContent = label;
+            badge.title = (cache.keybox.validationErrors || []).join('\n') || `Keybox: ${label}`;
+            badge.hidden = false;
+            return true;
+        };
+        const watchKeyboxBadge = () => {
+            if (renderKeyboxBadge()) return;
+            const start = Date.now();
+            const tick = setInterval(() => {
+                if (renderKeyboxBadge() || Date.now() - start > 5000) clearInterval(tick);
+            }, 200);
+        };
         const init = () => {
             document.querySelectorAll('.custom-toggle[data-flag]').forEach((t) => {
                 t.addEventListener('click', onToggleClick);
             });
             refreshState();
+            watchKeyboxBadge();
             const dlg = document.getElementById('automation-settings-dialog');
             if (dlg) {
                 new MutationObserver(() => { if (dlg.hasAttribute('open')) refreshState(); })
