@@ -59,5 +59,7 @@ vectors.db*
 *.key
 *.jks
 *.keystore
+# Public trust anchors are not credentials — they ship in the binary.
+!rust/src/keybox/roots/*.pem
 .env
 .env.*

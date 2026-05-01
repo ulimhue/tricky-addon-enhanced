@@ -1,6 +1,6 @@
 [package]
 name = "ta-enhanced"
-version = "5.46.0"
+version = "5.50.0"
 edition = "2021"
 
 [dependencies]
@@ -13,12 +13,15 @@ tracing-subscriber = { version = "= 0.3.22", features = ["env-filter"] }
 anyhow = "= 1.0.101"
 libc = "= 0.2.180"
 ureq = { version = "= 2.12.1", features = ["tls"] }
-quick-xml = "= 0.37.2"
+quick-xml = { version = "= 0.37.2", features = ["serialize"] }
 base64 = "= 0.22.1"
 nix = { version = "= 0.29.0", features = ["signal", "process"] }
 ring = "0.17"
+x509-parser = "= 0.18.1"
 rcgen = { version = "0.12", default-features = false, features = ["pem", "ring"] }
 rsa = { version = "0.9", default-features = false, features = ["std", "pem"] }
+p256 = { version = "= 0.13.2", default-features = false, features = ["std", "pem", "pkcs8", "ecdsa"] }
+p384 = { version = "= 0.13.1", default-features = false, features = ["std", "pem", "pkcs8", "ecdsa"] }
 rand = "0.8"
 
 [profile.dev]
