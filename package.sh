@@ -234,6 +234,7 @@ zip -r9 "$ZIP_PATH" . \
     -x ".github/*" \
     -x ".omc/*" \
     -x ".context/*" \
+    -x "handoff/*" \
     -x "external/*" \
     -x "artifacts/*" \
     -x "CLAUDE.md" \

@@ -3,6 +3,10 @@
 *.tar.gz
 release/
 
+# Session artifacts
+handoff/
+.omc/
+
 # Temporary files
 *.tmp
 *.temp
